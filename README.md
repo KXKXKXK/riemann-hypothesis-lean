@@ -129,6 +129,8 @@ machine-checked.
 
 ## Route map
 
+**Live:** <https://kxkxkxk.github.io/riemann-hypothesis-lean/route-map.html>
+
 `docs/route-map.html` is an interactive graph of the development: every theorem, registration and
 gap as a node, with edges labelled by the kind of relation (`⟺`, `⟹`, `⊣`, `⇢`). It loads from disk
 with no external dependencies.
