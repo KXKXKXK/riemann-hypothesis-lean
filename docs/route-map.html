@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Riemann Hypothesis in Lean 4 — route map</title>
+<style>
+  :root{
+    --bg:#0f1418; --panel:#151b21; --panel2:#1b232b; --line:#2a343d;
+    --ink:#e6edf3; --ink2:#9fb0bd; --ink3:#6b7d8b;
+    --imp:#8fa3b0; --iff:#4fd1b8; --blk:#ff9d5c; --plan:#7d93a5; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:radial-gradient(1200px 800px at 18% 0%, #17202a 0%, var(--bg) 62%);
+    color:var(--ink);
+    font-family:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:grid; grid-template-columns:minmax(0,1fr) 360px; height:100vh; overflow:hidden;
+  }
+  body.lang-en{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,"Helvetica Neue",Arial,sans-serif}
+  body.lang-en svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,"Helvetica Neue",Arial,sans-serif}
+
+  header{position:absolute; top:0; left:0; right:360px; z-index:5; padding:13px 20px 10px; pointer-events:none;
+    background:linear-gradient(180deg, rgba(15,20,24,.94) 0%, rgba(15,20,24,.6) 66%, rgba(15,20,24,0) 100%);}
+  header h1{margin:0; font-size:16px; font-weight:650; letter-spacing:.02em}
+  header h1 span.mono{color:var(--iff); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px}
+  header .sub{margin-top:4px; font-size:11.5px; color:var(--ink3); line-height:1.55}
+  header .sub b{color:var(--ink2); font-weight:600}
+
+  /* 右上角语言开关 */
+  #langswitch{position:fixed; top:11px; right:12px; z-index:30; display:flex;
+    background:var(--panel2); border:1px solid var(--line); border-radius:8px; overflow:hidden;
+    box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  #langswitch button{background:transparent; border:0; color:var(--ink3); font-family:inherit;
+    font-size:11.5px; padding:5px 11px; cursor:pointer; letter-spacing:.04em; transition:.15s}
+  #langswitch button:hover{color:var(--ink)}
+  #langswitch button.on{background:#243040; color:var(--iff); font-weight:650}
+
+  /* 双击弹层：概念说明 */
+  #pop{position:fixed; inset:0; z-index:50; display:none; background:rgba(6,10,13,.74)}
+  #pop.on{display:flex; align-items:center; justify-content:center; padding:26px}
+  #pop .sheet{background:#171e25; border:1px solid #3a4855; border-radius:14px;
+    width:min(620px,92vw); max-height:78vh; overflow-y:auto; padding:18px 22px 20px;
+    box-shadow:0 22px 70px rgba(0,0,0,.66); font-size:13px; line-height:1.78; color:#c3d2dd}
+  #pop .sheet::-webkit-scrollbar{width:9px}
+  #pop .sheet::-webkit-scrollbar-thumb{background:#2b3742; border-radius:5px}
+  #pop .hd{display:flex; align-items:flex-start; gap:12px}
+  #pop .nm{flex:1; font-size:17px; font-weight:700; color:var(--ink); line-height:1.4}
+  #pop .x{background:transparent; border:0; color:var(--ink3); font-size:20px; line-height:1;
+    cursor:pointer; padding:1px 7px; border-radius:7px; font-family:inherit}
+  #pop .x:hover{color:var(--ink); background:#243040}
+  #pop .meta{font-size:11px; color:var(--ink3); margin:2px 0 13px; word-break:break-word}
+  #pop .desc{color:#dbe6ee}
+  #pop .desc b{color:#fff}
+  #pop .sec{margin-top:15px; padding-top:13px; border-top:1px dashed #333f4a}
+  #pop .sec h3{margin:0 0 6px; font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink3); font-weight:600}
+  #pop .foot{margin-top:15px; font-size:10.5px; color:#5f7383}
+  .notebox{cursor:pointer}
+
+  .toolbar{position:absolute; top:12px; right:372px; z-index:6; display:flex; gap:6px}
+  .toolbar button, .toolbar label{background:var(--panel2); color:var(--ink2); border:1px solid var(--line);
+    border-radius:7px; padding:5px 9px; font-size:11.5px; cursor:pointer; font-family:inherit; transition:.15s;}
+  .toolbar button:hover, .toolbar label:hover{color:var(--ink); border-color:#3d4a56}
+  .toolbar label{display:inline-flex; align-items:center; gap:5px; user-select:none}
+  .toolbar input[type=checkbox]{accent-color:var(--iff); margin:0}
+  .toolbar .chk[data-off="1"]{opacity:.42}
+
+  #stage{position:relative; grid-column:1; overflow:hidden; cursor:grab; user-select:none}
+  #stage.dragging{cursor:grabbing}
+  svg{display:block; width:100%; height:100%}
+  text{font-family:"PingFang SC","Hiragino Sans GB","Noto Sans CJK SC",-apple-system,sans-serif}
+
+  .zone{fill:#ffffff; fill-opacity:.017; stroke:#33414d; stroke-width:1.2; stroke-dasharray:7 6}
+  .zone-label{fill:#5f7383; font-size:12px; letter-spacing:.05em}
+
+  .node{cursor:pointer}
+  .node .box{stroke-width:1.5}
+  .node .lbl{font-weight:560; fill:#e9f0f6; dominant-baseline:middle}
+  .node .sub{fill:#9fb2c0; dominant-baseline:middle}
+  .node .star{fill:#ffd166; font-size:12px; font-weight:700}
+  .node:hover .box{filter:brightness(1.22)}
+  .node.sel .box{filter:brightness(1.3) drop-shadow(0 0 7px rgba(79,209,184,.5))}
+
+  .st-done .box{fill:#12281c; stroke:#43a047}
+  .st-upstream .box{fill:#0f2233; stroke:#3b82f6}
+  .st-blocked .box{fill:#2c1a10; stroke:#f97316}
+  .st-excluded .box{fill:#2b1215; stroke:#ef5350; stroke-dasharray:5 4}
+  .st-untried .box{fill:#181d21; stroke:#64748b; stroke-dasharray:2 3}
+  .st-assumed .box{fill:#2a2410; stroke:#eab308}
+  .st-ccm .box{fill:#1d1633; stroke:#8b5cf6}
+  .st-retain .box{fill:#0d2b28; stroke:#14b8a6}
+  .st-corrected .box{fill:#1a2229; stroke:#94a3b8}
+  .st-target .box{fill:#2e2210; stroke:#f59e0b; stroke-width:2.6}
+  .st-note .box{fill:#241f0d; stroke:#a68b2a}
+
+  .edge{fill:none; stroke-linecap:round}
+  .e-imp{stroke:var(--imp); stroke-width:1.7}
+  .e-iff{stroke:var(--iff); stroke-width:2.2}
+  .e-blk{stroke:var(--blk); stroke-width:2.1; stroke-dasharray:7 5}
+  .e-plan{stroke:var(--plan); stroke-width:1.5; stroke-dasharray:6 6}
+  .e-bad{stroke:var(--bad); stroke-width:2.1; stroke-dasharray:4 5}
+  .ehit{fill:none; stroke:transparent; stroke-width:15; cursor:pointer}
+  .edge-g.hot .edge{filter:drop-shadow(0 0 4px rgba(79,209,184,.6))}
+
+  .elabel{opacity:.9; transition:opacity .12s; pointer-events:none}
+  .elabel rect{fill:#0d1318; fill-opacity:.95; stroke:#2f3b46; stroke-width:.8}
+  .elabel text{font-size:10px; fill:#adc0cd; dominant-baseline:middle; letter-spacing:.02em}
+  .elabel.dimmed{opacity:.07}
+  #viewport.small .elabel{opacity:0}
+  .edge-g:hover .elabel{opacity:1 !important}
+
+  .dimmed{opacity:.12; transition:opacity .12s}
+  .node{transition:opacity .12s}
+
+  aside{grid-column:2; background:var(--panel); border-left:1px solid var(--line);
+    overflow-y:auto; padding:46px 14px 40px; font-size:12.5px; line-height:1.6;}
+  aside::-webkit-scrollbar{width:9px}
+  aside::-webkit-scrollbar-thumb{background:#2b3742; border-radius:5px}
+  .card{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:11px 12px; margin-bottom:11px}
+  .card h2{margin:0 0 8px; font-size:11px; font-weight:600; letter-spacing:.1em; color:var(--ink3); text-transform:uppercase}
+  #detail .nm{font-size:14px; font-weight:650; margin-bottom:2px; line-height:1.35}
+  #detail .st{font-size:11px; color:var(--ink3); margin-bottom:8px}
+  #detail dl{margin:0; display:grid; grid-template-columns:52px 1fr; gap:3px 8px; font-size:12px}
+  #detail dt{color:var(--ink3); font-size:11px; padding-top:1px}
+  #detail dd{margin:0; color:var(--ink2); word-break:break-word}
+  #detail .note{margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); color:#c3d2dd; font-size:12px}
+  .hint{color:var(--ink3); font-size:12px}
+
+  .lg{display:flex; flex-direction:column; gap:7px}
+  .lg .row{display:flex; align-items:center; gap:9px; font-size:11.5px; color:var(--ink2)}
+  .lg .row svg{width:56px; height:14px; flex:0 0 56px; overflow:visible}
+  .lg .row b{color:var(--ink); font-weight:600}
+  .sw{width:11px; height:11px; border-radius:3px; flex:0 0 11px; border:1.4px solid}
+
+  table{border-collapse:collapse; width:100%; font-size:11px}
+  th,td{text-align:left; padding:3.5px 5px; border-bottom:1px solid #1f282f; vertical-align:top}
+  th{color:var(--ink3); font-weight:600; font-size:10px}
+  td.mono{font-family:ui-monospace,Menlo,monospace; font-size:10.5px; color:#8fd8c8}
+  details summary{cursor:pointer; color:var(--ink3); font-size:11px; outline:none}
+  details[open] summary{color:var(--ink2); margin-bottom:6px}
+  .warn{color:#ffd166}
+  kbd{background:#222c35; border:1px solid #33414d; border-radius:4px; padding:0 4px; font-size:10px; font-family:inherit}
+</style>
+</head>
+<body>
+
+<div id="langswitch">
+  <button data-lang="zh">中文</button>
+  <button data-lang="en" class="on">EN</button>
+</div>
+
+<div id="pop"><div class="sheet" id="popsheet"></div></div>
+
+<div id="stage">
+  <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a-imp" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="9" markerHeight="9"
+              markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1,2 L11,6 L1,10 z" fill="#8fa3b0"/></marker>
+      <marker id="a-iff" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="9.5" markerHeight="9.5"
+              markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1,2 L11,6 L1,10 z" fill="#4fd1b8"/></marker>
+      <marker id="a-blk" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="9" markerHeight="9"
+              markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1,2 L11,6 L1,10 z" fill="#ff9d5c"/></marker>
+      <marker id="a-plan" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="8.5" markerHeight="8.5"
+              markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1,2 L11,6 L1,10 z" fill="#7d93a5"/></marker>
+      <marker id="a-bad" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="9" markerHeight="9"
+              markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1,2 L11,6 L1,10 z" fill="#ff6b6b"/></marker>
+    </defs>
+    <g id="viewport">
+      <g id="zones"></g>
+      <g id="edges"></g>
+      <g id="notes"></g>
+      <g id="nodes"></g>
+    </g>
+  </svg>
+</div>
+
+<header>
+  <h1 data-i18n-html="hdr.h1">RH 工作网状图 <span class="mono">· 图论版</span></h1>
+  <div class="sub" data-i18n-html="hdr.sub">
+    <b>时点</b> 2026-10-20 <b>10:10</b>（v2，上次 00:35）· <b>Lean</b> v4.35.0 · <b>Mathlib</b> 56a00585 · <b>build</b> 3957 jobs / EXIT=0
+    <span style="color:#5f7383">（jobs 是时点实测值，不是判据）</span><br>
+    <span style="color:#7fd6c2">今日新增</span>：验证回执工具链（`bin/receipt.sh`，冻结哈希 `66a1f772`）·
+    prolate 数值台（$c\le40$）· <span style="color:#ff9d5c">缺口②引文断裂（式 7.6 不存在）</span><br>
+    顶点 = 命题 / 登记项 / 工具；边 = 逻辑关系。滚轮缩放 · 拖拽平移 · 点顶点看证据 · <b>双击</b>顶点看概念说明 · <kbd>F</kbd> 适配
+  </div>
+</header>
+
+<div class="toolbar" id="toolbar">
+  <label class="chk" data-type="imp"><input type="checkbox" checked data-t="imp"> <span data-i18n="tb.imp">⟹ 因果</span></label>
+  <label class="chk" data-type="iff"><input type="checkbox" checked data-t="iff"> <span data-i18n="tb.iff">⟺ 双条件</span></label>
+  <label class="chk" data-type="blk"><input type="checkbox" checked data-t="blk"> <span data-i18n="tb.blk">⊣ 阻塞</span></label>
+  <label class="chk" data-type="plan"><input type="checkbox" checked data-t="plan"> <span data-i18n="tb.plan">⇢ 未接</span></label>
+  <button id="btn-fit" data-i18n="tb.fit">适配</button>
+  <button id="btn-reset" data-i18n="tb.reset">复位</button>
+</div>
+
+<aside>
+  <div class="card" id="detail">
+    <h2 data-i18n="det.title">顶点</h2>
+    <div class="hint" data-i18n-html="det.hint">点一个顶点，这里显示它的状态、证据级别、文件位置与账本号。</div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="lg.title">边的类型（这是本图的主张）</h2>
+    <div class="lg">
+      <div class="row">
+        <svg viewBox="0 0 56 14"><line x1="2" y1="7" x2="48" y2="7" stroke="#8fa3b0" stroke-width="1.7"/><path d="M46,2.5 L54,7 L46,11.5 z" fill="#8fa3b0"/></svg>
+        <span data-i18n-html="lg.imp"><b>⟹</b> 因果 / 蕴含：左边是右边的前提、零件或输入</span>
+      </div>
+      <div class="row">
+        <svg viewBox="0 0 56 14"><line x1="8" y1="7" x2="48" y2="7" stroke="#4fd1b8" stroke-width="2.2"/><path d="M10,2.5 L2,7 L10,11.5 z" fill="#4fd1b8"/><path d="M46,2.5 L54,7 L46,11.5 z" fill="#4fd1b8"/></svg>
+        <span data-i18n-html="lg.iff"><b>⟺</b> 双条件 / 等价（category theory 的 iso）：两个方向都成立</span>
+      </div>
+      <div class="row">
+        <svg viewBox="0 0 56 14"><line x1="2" y1="7" x2="48" y2="7" stroke="#ff9d5c" stroke-width="2.1" stroke-dasharray="5 4"/><path d="M46,2.5 L54,7 L46,11.5 z" fill="#ff9d5c"/></svg>
+        <span data-i18n-html="lg.blk"><b>⊣</b> 阻塞：左边的缺口卡住右边。<b>它只说明依赖未满足，不判定这条路线死活</b>——补上缺口，边就消失</span>
+      </div>
+      <div class="row">
+        <svg viewBox="0 0 56 14"><line x1="2" y1="7" x2="48" y2="7" stroke="#7d93a5" stroke-width="1.5" stroke-dasharray="5 5"/><path d="M46,2.5 L54,7 L46,11.5 z" fill="#7d93a5"/></svg>
+        <span data-i18n-html="lg.plan"><b>⇢</b> 未接 / 计划：关系成立但<b>还没接通</b>，不是已证的逻辑蕴含</span>
+      </div>
+      <div class="row">
+        <svg viewBox="0 0 56 14"><line x1="8" y1="7" x2="48" y2="7" stroke="#ff6b6b" stroke-width="2.1" stroke-dasharray="4 4"/><path d="M10,2.5 L2,7 L10,11.5 z" fill="#ff6b6b"/><path d="M46,2.5 L54,7 L46,11.5 z" fill="#ff6b6b"/></svg>
+        <span data-i18n-html="lg.bad"><b>⟲</b> 循环：形式上是双条件，但方向是「证 RH ⟹ 结论」，不能算进展</span>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:8px;font-size:11px" data-i18n="lg.note">节点颜色只编码状态，边的颜色只编码逻辑类型——两套编码互不借用。</div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="st.title">顶点状态</h2>
+    <div class="lg">
+      <div class="row"><i class="sw" style="background:#12281c;border-color:#43a047"></i><span data-i18n-html="st.done"><b>已完成 / 在用</b>（多数 A 级机器验证）</span></div>
+      <div class="row"><i class="sw" style="background:#0f2233;border-color:#3b82f6"></i><span data-i18n-html="st.upstream"><b>上游已有、我们没接</b></span></div>
+      <div class="row"><i class="sw" style="background:#2c1a10;border-color:#f97316"></i><span data-i18n-html="st.blocked"><b>阻塞 / 缺件</b>（<span style="color:#ffd166">活着</span>：只缺资源或前置）</span></div>
+      <div class="row"><i class="sw" style="background:#181d21;border-color:#64748b"></i><span data-i18n-html="st.untried"><b>未尝试</b>（没动过 ≠ 没价值）</span></div>
+      <div class="row"><i class="sw" style="background:#2a2410;border-color:#eab308"></i><span data-i18n-html="st.assumed"><b>假设</b>（写进登记、无证明）</span></div>
+      <div class="row"><i class="sw" style="background:#1d1633;border-color:#8b5cf6"></i><span data-i18n-html="st.ccm"><b>C-C-M 算子论支</b>（唯一活路）</span></div>
+      <div class="row"><i class="sw" style="background:#2b1215;border-color:#ef5350"></i><span data-i18n-html="st.excluded"><b>已排除</b>（<span style="color:#ff6b6b">死路</span>：定理级理由，永久）</span></div>
+      <div class="row"><i class="sw" style="background:#0d2b28;border-color:#14b8a6"></i><span data-i18n-html="st.retain"><b>保留</b>（逻辑上不可排除）</span></div>
+      <div class="row"><i class="sw" style="background:#1a2229;border-color:#94a3b8"></i><span data-i18n-html="st.corrected"><b>已更正</b>（曾登记为缺口，现证为过松）</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="nl.title">三种「没做成」，不能混为一谈</h2>
+    <div style="font-size:11.5px;color:var(--ink2);line-height:1.75">
+      <p style="margin:0 0 6px" data-i18n-html="nl.red"><b style="color:#ff6b6b">死路（红）</b>：有<b>定理级</b>的理由说它不可能，例：BK 的 no-go（Endres–Steiner Thm 15.6）、力迫保 ω 故算术句绝对、离线零点成组的目标强于 RH。这类永久，不必再看。</p>
+      <p style="margin:0 0 6px" data-i18n-html="nl.orange"><b style="color:#f97316">缺件 / 阻塞（橙）</b>：<b>活着</b>。它橙，是因为缺资源（ζ 增长估计、prolate 机器）、缺定义（(P)）、缺工程量（证书批）或缺依赖（Equivalence.Theorem）。<b>补上就绿，与 RH 的难度无关。</b></p>
+      <p style="margin:0 0 6px" data-i18n-html="nl.grey"><b style="color:#64748b">未尝试（灰）</b>：没动过，既不是死路也不是活路，只是没查。</p>
+      <p style="margin:0" data-i18n-html="nl.rule"><b>判据</b>：一个顶点标红，必须能给出「定理 + 它为什么杀死这条路」；给不出就只能标橙或灰。<b>反过来说，标橙不算进展，标红才算结论。</b></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="ev.title">证据级别</h2>
+    <div class="lg" style="gap:3px">
+      <div class="row"><b style="width:14px">A</b><span data-i18n="ev.a">机器验证（build / lake env lean 通过，公理仅 propext / choice / Quot.sound）</span></div>
+      <div class="row"><b style="width:14px">B</b><span data-i18n="ev.b">可复现推导（有命令、有脚本，未进 Lean）</span></div>
+      <div class="row"><b style="width:14px">C</b><span data-i18n="ev.c">纸面推导（只在笔记 / 对话里）</span></div>
+      <div class="row"><b style="width:14px">D</b><span data-i18n="ev.d">数值启发式</span></div>
+      <div class="row"><b style="width:14px">E</b><span data-i18n="ev.e">未核</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="fold.title">四处诚实的收口</h2>
+    <div style="font-size:11.5px;color:var(--ink2)">
+      <p style="margin:0 0 7px" data-i18n-html="fold.p1"><b class="warn">四条关系收进了节点文字</b>（为版面，关系仍在）：<br>① `EquivThm` 阻塞 ⟹ <b>Robin 链没合上</b>；<br>② `Arakelov` 字面版已排除，<b>并入 C-C-M</b>；<br>③ 证书批 与 Colossally abundant 计算 ⟹ <b>Robin 数值侧</b>（还有 06–13 / Row01–35 / AllRows 没编）。</p>
+      <p style="margin:0 0 7px" data-i18n-html="fold.p2"><b class="warn">一条边故意不存在</b>：`BacklundBound` 与 RH 之间<b>没有箭头</b>——N(T)=O(T log T) 不蕴含 RH，画上就是撒谎。</p>
+      <p style="margin:0 0 7px" data-i18n-html="fold.p3"><b class="warn">`Foundation` 也刻意无出边</b>：它是工具链前提（v4.35），不是 Π⁰₁ 表述的逻辑前提，把它画成 ⟹ 会把「环境就绪」伪装成「推理用到它」。</p>
+      <p style="margin:0 0 7px" data-i18n-html="fold.p4"><b class="warn">红色 ⟲ 那条</b>是 C-C-M 缺口③：它的「等价」方向是<b>证 RH ⟹ 结论</b>，所以只能标成循环。</p>
+      <p style="margin:0" data-i18n-html="fold.p5"><b class="warn">今天才发现的第五条</b>：缺口②的对象 $k_\lambda$ <b>在原文里查不到</b>——账上「式 7.6」所指的论文正式版最大编号只到 §6。这意味着「缺口②不是难，是还没写成命题」这句话还不够准：<b>连要写的那两个对象都缺可追溯的定义</b>。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="lim.title">局限</h2>
+    <div style="font-size:11.5px;color:var(--ink3)" data-i18n-html="lim.body">
+      节点状态是 2026-10-20 10:10（v2）的时点值；00:35 那版的结论没有被覆盖，只被补充；`baseline.env` 带时间戳，别把 3957 jobs 当验收判据。
+      「已排除」六条只给结论，论证在 `RESEARCH-ROUTES-NEXT.md`。
+      档三跨领域<b>完全没查文献</b>，所以「未尝试」≠「没价值」。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="tbl.title">全部边</h2>
+    <details id="edgetable"><summary id="edgecount">展开边表</summary></details>
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ============================================================================
+   双语网状图 v5。一份数据、两种语言；渲染可重跑（切语言 = 重算尺寸 + 重画）。
+   zh 的尺寸参数与 v4 完全相同（13 / 10.5 / 300），所以中文侧版面不变。
+   ========================================================================== */
+let LANG = 'zh';
+
+const T  = (zh, en) => ({zh, en});
+const tr = x => x == null ? '' : (typeof x === 'string' ? x : (x[LANG] != null ? x[LANG] : x.zh));
+const nv = v => (v && typeof v === 'object') ? (v[LANG] != null ? v[LANG] : v.zh) : v;
+
+/* 字号与副标截断上限（en 用小一号字，抵消拉丁文比汉字宽） */
+const FSZ = {zh:{lbl:13, sub:10.5}, en:{lbl:11.5, sub:9.2}};
+const SUBMAX = 300;
+
+/* ── 静态文案 ─────────────────────────────────────────────────────────────── */
+const I18N = {
+  'doc.title': T('RH 工作网状图 · 图论版（2026-10-20 v2 时点）',
+                 'RH Working Network · Graph Edition (snapshot 2026-10-20, v2)'),
+
+  'hdr.h1': T('RH 工作网状图 <span class="mono">· 图论版</span>',
+              'RH Working Network <span class="mono">· graph edition</span>'),
+
+  'hdr.sub': T(
+    '<b>时点</b> 2026-10-20 <b>10:10</b>（v2，上次 00:35）· <b>Lean</b> v4.35.0 · <b>Mathlib</b> 56a00585 · <b>build</b> 3957 jobs / EXIT=0 <span style="color:#5f7383">（jobs 是时点实测值，不是判据）</span><br><span style="color:#7fd6c2">今日新增</span>：验证回执工具链（`bin/receipt.sh`，冻结哈希 `66a1f772`）· prolate 数值台（$c\\le40$）· <span style="color:#ff9d5c">缺口②引文断裂（式 7.6 不存在）</span><br>顶点 = 命题 / 登记项 / 工具；边 = 逻辑关系。滚轮缩放 · 拖拽平移 · 点顶点看证据 · <b>双击</b>顶点看概念说明 · <kbd>F</kbd> 适配',
+    '<b>Snapshot</b> 2026-10-20 <b>10:10</b> (v2; previous 00:35) · <b>Lean</b> v4.35.0 · <b>Mathlib</b> 56a00585 · <b>build</b> 3957 jobs / EXIT=0 <span style="color:#5f7383">(the job count is a measured snapshot value, not a criterion)</span><br><span style="color:#7fd6c2">New today</span>: verification-receipt toolchain (`bin/receipt.sh`, frozen hash `66a1f772`) · prolate numerical bench ($c\\le40$) · <span style="color:#ff9d5c">Gap ② citation break (Eq. 7.6 does not exist)</span><br>Vertices = propositions / registry entries / tools; edges = logical relations. Wheel to zoom · drag to pan · click a vertex for evidence · <b>double-click</b> a vertex for the concept · <kbd>F</kbd> to fit'),
+
+  'tb.imp':   T('⟹ 因果',   '⟹ implies'),
+  'tb.iff':   T('⟺ 双条件', '⟺ iff'),
+  'tb.blk':   T('⊣ 阻塞',   '⊣ blocks'),
+  'tb.plan':  T('⇢ 未接',   '⇢ unwired'),
+  'tb.fit':   T('适配',     'Fit'),
+  'tb.reset': T('复位',     'Reset'),
+
+  'det.title': T('顶点', 'Vertex'),
+  'det.hint':  T('点一个顶点，这里显示它的状态、证据级别、文件位置与账本号。<b>双击顶点</b>则弹出这个概念本身的说明。',
+                 'Click a vertex to see its status, evidence level, file location and ledger id. <b>Double-click a vertex</b> for a note on the concept itself.'),
+  'pop.evidence': T('状态与证据', 'Status and evidence'),
+  'pop.hint': T('单击 = 右侧证据面板 · 双击 = 这段概念说明 · Esc 关闭',
+                'single click = side evidence panel · double click = this concept note · Esc to close'),
+
+  'det.sub':   T('副标', 'sub'),
+  'det.where': T('位置', 'where'),
+  'det.ev':    T('账本', 'ledger'),
+  'det.in':    T('入', 'in'),
+  'det.out':   T('出', 'out'),
+  'det.both':  T('双向', 'both ways'),
+
+  'lg.title': T('边的类型（这是本图的主张）', 'Edge types (what this graph claims)'),
+  'lg.imp':   T('<b>⟹</b> 因果 / 蕴含：左边是右边的前提、零件或输入',
+                '<b>⟹</b> causal / implication: the left side is a premise, part or input of the right'),
+  'lg.iff':   T('<b>⟺</b> 双条件 / 等价（category theory 的 iso）：两个方向都成立',
+                '<b>⟺</b> biconditional / equivalence (an iso in category theory): both directions hold'),
+  'lg.blk':   T('<b>⊣</b> 阻塞：左边的缺口卡住右边。<b>它只说明依赖未满足，不判定这条路线死活</b>——补上缺口，边就消失',
+                '<b>⊣</b> blocks: a gap on the left stalls the right. <b>It only says a dependency is unmet; it does not rule on whether that route is alive</b> — fill the gap and the edge disappears'),
+  'lg.plan':  T('<b>⇢</b> 未接 / 计划：关系成立但<b>还没接通</b>，不是已证的逻辑蕴含',
+                '<b>⇢</b> unwired / planned: the relation holds but is <b>not yet connected</b>; it is not a proven implication'),
+  'lg.bad':   T('<b>⟲</b> 循环：形式上是双条件，但方向是「证 RH ⟹ 结论」，不能算进展',
+                '<b>⟲</b> circular: formally a biconditional, but the direction is "prove RH ⟹ conclusion", so it is not progress'),
+  'lg.note':  T('节点颜色只编码状态，边的颜色只编码逻辑类型——两套编码互不借用。',
+                'Node colour encodes status only, edge colour encodes logical type only — the two encodings never borrow from each other.'),
+
+  'st.title':    T('顶点状态', 'Vertex status'),
+  'st.done':     T('<b>已完成 / 在用</b>（多数 A 级机器验证）', '<b>Done / in use</b> (mostly level-A machine checks)'),
+  'st.upstream': T('<b>上游已有、我们没接</b>', '<b>Upstream has it, we have not wired it</b>'),
+  'st.blocked':  T('<b>阻塞 / 缺件</b>（<span style="color:#ffd166">活着</span>：只缺资源或前置）',
+                   '<b>Blocked / missing piece</b> (<span style="color:#ffd166">alive</span>: only resources or prerequisites missing)'),
+  'st.untried':  T('<b>未尝试</b>（没动过 ≠ 没价值）', '<b>Untried</b> (not touched ≠ worthless)'),
+  'st.assumed':  T('<b>假设</b>（写进登记、无证明）', '<b>Assumed</b> (registered, unproven)'),
+  'st.ccm':      T('<b>C-C-M 算子论支</b>（唯一活路）', '<b>C-C-M operator-theory branch</b> (the only live route)'),
+  'st.excluded': T('<b>已排除</b>（<span style="color:#ff6b6b">死路</span>：定理级理由，永久）',
+                   '<b>Excluded</b> (<span style="color:#ff6b6b">dead end</span>: theorem-level reason, permanent)'),
+  'st.retain':   T('<b>保留</b>（逻辑上不可排除）', '<b>Retained</b> (not logically excludable)'),
+  'st.corrected':T('<b>已更正</b>（曾登记为缺口，现证为过松）', '<b>Corrected</b> (was a registered gap, now shown to be too weak)'),
+
+  'nl.title': T('三种「没做成」，不能混为一谈', 'Three kinds of "not done" must not be conflated'),
+  'nl.red':   T('<b style="color:#ff6b6b">死路（红）</b>：有<b>定理级</b>的理由说它不可能，例：BK 的 no-go（Endres–Steiner Thm 15.6）、力迫保 ω 故算术句绝对、离线零点成组的目标强于 RH。这类永久，不必再看。',
+                '<b style="color:#ff6b6b">Dead end (red)</b>: a <b>theorem-level</b> reason says it is impossible — e.g. the BK no-go (Endres–Steiner Thm 15.6), forcing preserves ω so arithmetic sentences are absolute, off-line zero clustering targets something stronger than RH. These are permanent; no need to revisit.'),
+  'nl.orange':T('<b style="color:#f97316">缺件 / 阻塞（橙）</b>：<b>活着</b>。它橙，是因为缺资源（ζ 增长估计、prolate 机器）、缺定义（(P)）、缺工程量（证书批）或缺依赖（Equivalence.Theorem）。<b>补上就绿，与 RH 的难度无关。</b>',
+                '<b style="color:#f97316">Missing piece / blocked (orange)</b>: <b>alive</b>. It is orange because it lacks resources (ζ growth estimates, the prolate machine), a definition ((P)), engineering (the certificate batches) or a dependency (Equivalence.Theorem). <b>Fill it in and it turns green; this has nothing to do with how hard RH is.</b>'),
+  'nl.grey':  T('<b style="color:#64748b">未尝试（灰）</b>：没动过，既不是死路也不是活路，只是没查。',
+                '<b style="color:#64748b">Untried (grey)</b>: never touched — neither a dead end nor a live route, simply unexamined.'),
+  'nl.rule':  T('<b>判据</b>：一个顶点标红，必须能给出「定理 + 它为什么杀死这条路」；给不出就只能标橙或灰。<b>反过来说，标橙不算进展，标红才算结论。</b>',
+                '<b>Criterion</b>: to mark a vertex red you must be able to state "the theorem, and why it kills this route"; if you cannot, it may only be orange or grey. <b>Conversely, orange is not progress — red is the conclusion.</b>'),
+
+  'ev.title': T('证据级别', 'Evidence levels'),
+  'ev.a': T('机器验证（build / lake env lean 通过，公理仅 propext / choice / Quot.sound）',
+            'Machine-checked (build / lake env lean pass; axioms only propext / choice / Quot.sound)'),
+  'ev.b': T('可复现推导（有命令、有脚本，未进 Lean）', 'Reproducible derivation (commands and scripts, not yet in Lean)'),
+  'ev.c': T('纸面推导（只在笔记 / 对话里）', 'Paper derivation (only in notes / conversation)'),
+  'ev.d': T('数值启发式', 'Numerical heuristic'),
+  'ev.e': T('未核', 'Unverified'),
+
+  'fold.title': T('四处诚实的收口', 'Four honest fold-ins'),
+  'fold.p1': T('<b class="warn">四条关系收进了节点文字</b>（为版面，关系仍在）：<br>① `EquivThm` 阻塞 ⟹ <b>Robin 链没合上</b>；<br>② `Arakelov` 字面版已排除，<b>并入 C-C-M</b>；<br>③ 证书批 与 Colossally abundant 计算 ⟹ <b>Robin 数值侧</b>（还有 06–13 / Row01–35 / AllRows 没编）。',
+               '<b class="warn">Four relations folded into node text</b> (for layout; the relations still hold):<br>① `EquivThm` blocked ⟹ <b>the Robin chain does not close</b>;<br>② the literal `Arakelov` version is excluded, <b>folded into C-C-M</b>;<br>③ certificate batches plus the colossally abundant computation ⟹ <b>the numerical side of Robin</b> (06–13 / Row01–35 / AllRows still uncompiled).'),
+  'fold.p2': T('<b class="warn">一条边故意不存在</b>：`BacklundBound` 与 RH 之间<b>没有箭头</b>——N(T)=O(T log T) 不蕴含 RH，画上就是撒谎。',
+               '<b class="warn">One edge deliberately does not exist</b>: there is <b>no arrow</b> between `BacklundBound` and RH — N(T)=O(T log T) does not imply RH, and drawing it would be a lie.'),
+  'fold.p3': T('<b class="warn">`Foundation` 也刻意无出边</b>：它是工具链前提（v4.35），不是 Π⁰₁ 表述的逻辑前提，把它画成 ⟹ 会把「环境就绪」伪装成「推理用到它」。',
+               '<b class="warn">`Foundation` also has no outgoing edge on purpose</b>: it is a toolchain prerequisite (v4.35), not a logical premise of the Π⁰₁ statement; drawing it as ⟹ would disguise "the environment is ready" as "the reasoning uses it".'),
+  'fold.p4': T('<b class="warn">红色 ⟲ 那条</b>是 C-C-M 缺口③：它的「等价」方向是<b>证 RH ⟹ 结论</b>，所以只能标成循环。',
+               '<b class="warn">The red ⟲ edge</b> is C-C-M gap ③: its "equivalence" direction is <b>prove RH ⟹ conclusion</b>, so it can only be marked circular.'),
+  'fold.p5': T('<b class="warn">今天才发现的第五条</b>：缺口②的对象 $k_\\lambda$ <b>在原文里查不到</b>——账上「式 7.6」所指的论文正式版最大编号只到 §6。这意味着「缺口②不是难，是还没写成命题」这句话还不够准：<b>连要写的那两个对象都缺可追溯的定义</b>。',
+               '<b class="warn">A fifth one, found today</b>: the object $k_\\lambda$ of gap ② <b>cannot be found in the source paper</b> — the published version that our ledger cites as "Eq. 7.6" is numbered only up to §6. So "gap ② is not hard, it just has not been written as a proposition" is still not precise enough: <b>even the two objects to be written lack a traceable definition</b>.'),
+
+  'lim.title': T('局限', 'Limitations'),
+  'lim.body': T('节点状态是 2026-10-20 10:10（v2）的时点值；00:35 那版的结论没有被覆盖，只被补充；`baseline.env` 带时间戳，别把 3957 jobs 当验收判据。「已排除」六条只给结论，论证在 `RESEARCH-ROUTES-NEXT.md`。档三跨领域<b>完全没查文献</b>，所以「未尝试」≠「没价值」。',
+                'Node statuses are snapshot values as of 2026-10-20 10:10 (v2); the conclusions of the 00:35 version were not overwritten, only supplemented; `baseline.env` carries a timestamp, so do not treat 3957 jobs as an acceptance criterion. The six "excluded" entries give conclusions only; the arguments are in `RESEARCH-ROUTES-NEXT.md`. Tier-three cross-domain <b>was never surveyed in the literature</b>, so "untried" ≠ "worthless".'),
+
+  'tbl.title': T('全部边', 'All edges'),
+  'tbl.sum':   T('展开边表', 'Expand edge table'),
+  'tbl.th':    T('型', 'type'),
+  'tbl.edge':  T('边', 'edge'),
+  'tbl.claim': T('主张', 'claim')
+};
+
+/* ============================================================================
+   顶点。手工排版（世界坐标 2200×1560）。
+   t 主标签（可 \n 两行）· s 副标签 · st 状态 · w/h 显式尺寸 · where 文件:行 · ev 账本
+   ========================================================================== */
+const NODES = {
+  /* ── 目标 ── */
+  RH:{x:1700,y:386, w:186, h:104, t:'RH', s:T('唯一目标 · 单向边全指向它','the only target · one-way in'), st:'target',
+      where:'Overview.lean',
+      note:T('邻接边全是双向的（7 条 ⟺ + 1 条 ⟲）：入箭头 8、出箭头 8，所以按图论定义它<b>不是</b> sink（出度为 0 才是）。它真正的位置是：所有<b>单向</b>关系（⟹ / ⊣ / ⇢）都指向它，没有一条 ⟹ 从它出发。与 BacklundBound 之间则连边都没有：N(T)=O(T log T) 不蕴含 RH。',
+             'Every edge touching it is bidirectional (7 ⟺ plus 1 ⟲): 8 arrowheads in, 8 out, so by the graph-theoretic definition it is <b>not</b> a sink (a sink has out-degree zero). Its real position is this — every <b>one-way</b> relation (⟹ / ⊣ / ⇢) points at it, and no ⟹ leaves it. There is deliberately no edge to BacklundBound at all: N(T) = O(T log T) does not imply RH.')},
+
+  /* ── ① 判据层：全部与 RH 双条件 ── */
+  countsEq:{x:1200,y:158, t:'(I.19) lineCount = stripCount', s:T('已证 ⟺ RH · A 级','proved ⟺ RH · level A'), st:'done', star:1,
+      where:'LineCount.lean / LineCountClosed.lean',
+      note:T('项目地基：零点计数在临界线与条带内的相等性，等价于 RH，且已在 Lean 里形式化。',
+             'The foundation of the project: equality of the zero count on the critical line and inside the strip is equivalent to RH, and it is formalised in Lean.')},
+  Robin:{x:1200,y:238, t:T('Robin 判据','Robin criterion'), s:T('σ(n) < e^γ·n·log log n（n ≥ 5041）· 未接','σ(n) < e^γ·n·log log n (n ≥ 5041) · not wired'), st:'upstream',
+      where:'Robin.lean',
+      note:T('经典等价判据：RH ⟺ 对一切 n ≥ 5041 有 σ(n) < e^γ·n·log log n。阈值不能省——n≤2 时 log log n 无定义，n=3 起不等式直接不成立（Robin 1984）。形式化链未合上，卡在数值侧的 Equivalence.Theorem。',
+             'Classical equivalent criterion: RH ⟺ σ(n) < e^γ·n·log log n for all n ≥ 5041. The threshold cannot be dropped — log log n is undefined for n ≤ 2, and from n = 3 on the inequality plainly fails (Robin 1984). The formalisation chain does not close; it is stuck on Equivalence.Theorem on the numerical side.')},
+  Lagarias:{x:1200,y:318, t:T('Lagarias 判据','Lagarias criterion'), s:T('等价 · 未接','equivalent · not wired'), st:'upstream',
+      where:'Lagarias.lean',
+      note:T('等价形式，可用但未接。','An equivalent form; usable but not wired.')},
+  Weil:{x:1200,y:398, t:T('Weil 显式公式','Weil explicit formula'), s:T('等价 · 未接','equivalent · not wired'), st:'upstream',
+      where:'WeilFejer.lean',
+      note:T('等价形式，可用但未接。','An equivalent form; usable but not wired.')},
+  NB:{x:1200,y:482, t:'Nyman–Beurling', s:T('已排除为路线','excluded as a route'), st:'excluded',
+      note:T('排除理由：它不是「唯一」的非正性等价——每个线外零点都以确定的符号进入判据，沿它走并不会比 RH 本身容易。',
+             'Why excluded: it is not a "unique" non-positivity equivalent — every off-line zero enters the criterion with a definite sign, so walking this route is no easier than RH itself.')},
+  BD:{x:1200,y:562, t:'Báez-Duarte / Riesz', s:T('等价 · 未动','equivalent · untouched'), st:'untried',
+      note:T('未尝试，不是已排除。','Untried, not excluded.')},
+  Speiser:{x:1200,y:642, t:T('Speiser (ζ′ 无零点)','Speiser (ζ′ has no zeros)'), s:T('等价 · 未动','equivalent · untouched'), st:'untried',
+      note:T('未尝试，不是已排除。','Untried, not excluded.')},
+
+  /* ── ③ 分析层 ── */
+  Growth:{x:210,y:180, t:T('ζ 竖直增长估计','ζ vertical growth estimate'), s:T('‖ζ(σ+it)‖ ≤ C·|t|^A（σ 在带内）· 上游 0 命中','‖ζ(σ+it)‖ ≤ C·|t|^A · 0 upstream hits'), st:'blocked', star:1,
+      where:T('Mathlib 全库 ‖riemannZeta 仅 2 处命中','only 2 hits for ‖riemannZeta in the whole Mathlib tree'), ev:'ev-000405',
+      note:T('【可补性】形式化缺口，不是数学缺口：ζ 在条带内的增长估计在文献里早有（凸界/ Vinogradov–Korobov），缺的是 Mathlib 里的形式化。⟹ 它橙，是因为工程量，不是因为未知。原来的 note：唯一的真缺件。缺它，Jensen + Borel–Carathéodory 的标准 N(T) 推导第一步就迈不出去。级别 B：grep 审计，不是证明。',
+             '[Patchability] A formalisation gap, not a mathematical gap: growth estimates for ζ inside the strip have long been known (convexity bound / Vinogradov–Korobov); what is missing is the formalisation in Mathlib. ⟹ It is orange because of workload, not because it is unknown. Original note: the only genuine missing piece. Without it, the standard N(T) derivation from Jensen + Borel–Carathéodory cannot take its first step. Level B: a grep audit, not a proof.')},
+  Jensen:{x:210,y:288, t:T('Jensen 公式','Jensen formula'), s:T('上游 Kebekus · 未接','upstream Kebekus · not wired'), st:'upstream',
+      where:'Analysis/Complex/JensenFormula.lean',
+      note:T('MeromorphicOn.circleAverage_log_norm、AnalyticOnNhd.sum_divisor_le、countingFunction_finsum_eq_finsum_add。v4.33 就有，与本次升级无关。',
+             'MeromorphicOn.circleAverage_log_norm, AnalyticOnNhd.sum_divisor_le, countingFunction_finsum_eq_finsum_add. Present already in v4.33; unrelated to this upgrade.')},
+  BC:{x:210,y:356, t:'Borel–Carathéodory', s:T('上游 Radziwiłł · 未接','upstream Radziwiłł · not wired'), st:'upstream',
+      where:'Analysis/Complex/BorelCaratheodory.lean',
+      note:'Complex.borelCaratheodory : ‖f z‖ ≤ 2M‖z‖/(R−‖z‖) + ‖f 0‖(R+‖z‖)/(R−‖z‖)'},
+  PL:{x:210,y:424, t:'Phragmén–Lindelöf', s:T('上游 · 未接','upstream · not wired'), st:'upstream',
+      where:'Analysis/Complex/PhragmenLindelof.lean',
+      note:T('horizontal_strip / vertical_strip / eq_zero_on_horizontal_strip，用于条带估计。',
+             'horizontal_strip / vertical_strip / eq_zero_on_horizontal_strip, used for strip estimates.')},
+  ArgPr:{x:210,y:506, t:'ArgumentPrinciple', s:T('323 行 · 我方，上游 0 命中','323 lines · ours, 0 upstream hits'), st:'done', star:1,
+      where:'ArgumentPrinciple.lean', ev:'ev-000405',
+      note:T('辐角原理骨架：circleIntegral_logDeriv_eq_zero、exists_zero_of_circleIntegral_logDeriv_ne_zero、circleIntegral_residue。编译 A 级；「上游没有」是 B 级 grep 结论（circleIntegral + logDeriv 组合 0 命中）。',
+             'Argument-principle skeleton: circleIntegral_logDeriv_eq_zero, exists_zero_of_circleIntegral_logDeriv_ne_zero, circleIntegral_residue. Compiles, level A; "not upstream" is a level-B grep conclusion (0 hits for circleIntegral + logDeriv together).')},
+  ZetaZeros:{x:210,y:590, t:T('ZetaZeros（闭 + 离散 + 局部有限）','ZetaZeros (closed +\ndiscrete + locally finite)'), s:T('v4.33 就有 · 早已调用','already in v4.33 · long in use'), st:'done',
+      where:T('Mathlib ZetaZeros.lean；StripCount.lean:67','Mathlib ZetaZeros.lean; StripCount.lean:67'), ev:'ev-000404',
+      note:T('更正过的一条：它不是 v4.35 新增。StripCount.lean:67 的 finite_zerosInStripBox 早就在用 IsCompact.inter_riemannZetaZeros_finite。',
+             'One we corrected: this is not new in v4.35. finite_zerosInStripBox at StripCount.lean:67 has long been using IsCompact.inter_riemannZetaZeros_finite.')},
+  HardyZ:{x:552,y:150, t:'hardyZ', s:T('v4.35 新增 · 已接线 · A','new in v4.35 · wired · A'), st:'done',
+      where:T('Mathlib HardyZ.lean；HardyLineFunction.lean（43 行）','Mathlib HardyZ.lean; HardyLineFunction.lean (43 lines)'), ev:'ev-000403',
+      note:T('上游 PR #42963（merged by Bors）已有；我们只写了 3 行接线 + 一处 1/2 的 ℝ→ℂ 对齐（非 defeq，必须显式）。',
+             'Already upstream in PR #42963 (merged by Bors); we only wrote 3 lines of wiring plus one explicit ℝ→ℂ alignment of 1/2 (not defeq).')},
+  Engine:{x:552,y:240, t:T('变号 ⟹ 线上有零点','Sign change ⟹\nzero on the line'), s:T('本次完成 · 上游无 · A','done this round · not upstream · A'), st:'done', star:1,
+      where:T('HardyZeroEngine.lean（75 行）','HardyZeroEngine.lean (75 lines)'),
+      note:T('exists_zetaZero_of_hardyZ_sign_change 等。上游没有这件东西，是纯组合 + 介值定理，不依赖新的分析件。',
+             'exists_zetaZero_of_hardyZ_sign_change and friends. Nothing like it upstream; pure combinatorics plus the intermediate value theorem, no new analytic input.')},
+  Backlund:{x:835,y:400, w:224, h:92, t:'BacklundBound', s:T('stripCount T = O(T log T) · 登记缺口','stripCount T = O(T log T) · gap'), st:'blocked', star:1,
+      where:T('Backlund.lean（现名；旧名 OpenBacklundUpperBound 已废）','Backlund.lean (current name; old name OpenBacklundUpperBound retired)'), ev:'ev-000398',
+      note:T('【可补性】形式化缺口：N(T) 的渐近是无条件定理（von Mangoldt 1905 / Backlund 1918），缺的是把它搬进 Lean。⟹ 橙 = 工程，不是死角。原来的 note：它不是「缺一堆工具」：BC / Jensen / PL / 辐角原理 / 函数方程全齐，只缺 ζ 的竖直增长。⟹ 长线自建分析，不是小活。',
+             '[Patchability] Formalisation gap: the asymptotics of N(T) is an unconditional theorem (von Mangoldt 1905 / Backlund 1918); what is missing is moving it into Lean. ⟹ Orange = engineering, not a dead end. Original note: it is not "missing a pile of tools" — BC / Jensen / PL / argument principle / functional equation are all in place; only the vertical growth of ζ is missing. ⟹ Long-term in-house analysis, not a small job.')},
+  LineFunc:{x:700,y:660, t:T('Gap 1：已证 ⟹ 登记过松','Gap 1: proved ⟹\nregistry too weak'), s:T('infDist 见证 · A 级（无出边）','infDist witness · level A (no out-edge)'), st:'corrected',
+      where:T('LineFunction.lean（95 行）','LineFunction.lean (95 lines)'), ev:'ev-000397',
+      note:T('证出来的是「闭集的距离函数」，恒 ≥ 0、永不变号，与该登记自称的 sign-change 用途矛盾 ⟹ 它不是缺口，是过松的登记。',
+             'What was proved is "the distance function of a closed set", always ≥ 0 and never changing sign, which contradicts the sign-change use that the registry entry claims ⟹ it is not a gap but a too-weak registry entry.')},
+
+  /* ── ④ 证书层 ── */
+  Probe:{x:870,y:905, t:'robin-probe port', s:T('25 可编译 / 11 阻塞','25 compile / 11 blocked'), st:'blocked',
+      where:'~/Desktop/robin-probe-2026-10-19/',
+      note:T('【可补性】工程缺口：25/36 模块可编译，缺的是代码与依赖，不是数学。｜原来的 note：25 个模块可编译、11 个阻塞，阻塞里含 Equivalence.Theorem。',
+             '[Patchability] Engineering gap: 25 of 36 modules compile; what is missing is code and dependencies, not mathematics. | Original note: 25 modules compile, 11 blocked, and the blocked set includes Equivalence.Theorem.')},
+  EquivThm:{x:870,y:1002, t:'Equivalence.Theorem', s:T('阻塞 ⟹ Robin 链没合上','blocked ⟹ Robin chain does not close'), st:'blocked', star:1,
+      where:'robin-probe',
+      note:T('【可补性】工程缺口：它被阻塞是 robin-probe 的依赖没打通，不是它本身不成立。｜原来的 note：它被阻塞，意味着 Robin 判据的数值侧没有接上（原图里这条边指向 Robin，此处收进节点文字）。',
+             '[Patchability] Engineering gap: it is blocked because the robin-probe dependencies are not wired through, not because it fails. | Original note: with it blocked, the numerical side of the Robin criterion is not connected (that edge pointed at Robin in the earlier graph; it is folded into this node text here).')},
+  Certs:{x:870,y:1112, t:T('证书批','Certificate batches'), s:T('00–05 + Row00 有 olean；06–13 / Row01–35 / AllRows 缺','00–05 + Row00 have olean; rest missing'), st:'blocked',
+      ev:'ev-000399',
+      note:T('【可补性】工程缺口：缺的是编译批次的输出与剩余分组（06–13 / Row01–35 / AllRows），不是判据有问题。｜原来的 note：.olean 证明这批编译成功过；0 字节的 cert_*.log 只说明输出没被捕获，不能推出「从未跑过」。有限范围已验证 ⟹ Robin 的数值侧（这条边也收进了文字）。',
+             '[Patchability] Engineering gap: what is missing is the output of the compilation batches and the remaining groups (06–13 / Row01–35 / AllRows), not a problem with the criterion. | Original note: the .olean files prove this batch did compile; a 0-byte cert_*.log only means output was not captured and does not imply "never ran". A bounded range is verified ⟹ the numerical side of Robin (that edge is folded into the text here too).')},
+  CA:{x:870,y:1205, t:T('Colossally abundant 计算','Colossally abundant\ncomputation'), s:T('部分完成','partly done'), st:'blocked',
+      note:T('【可补性】工程缺口：部分完成的计算。原来的 note：部分完成。它与证书批一起构成 Robin 判据的数值证据（这条边收进了节点文字）。',
+             '[Patchability] Engineering gap: the computation is partly done. Original note: partly done. Together with the certificate batches it forms the numerical evidence for the Robin criterion (that edge is folded into this node text).')},
+
+  /* ── ⑦ 未尝试 / 待做 ── */
+  P:{x:1250,y:905, t:T('命题 (P)','Proposition (P)'), s:T('缺口②的靶子 · 对象定义待核','target of gap ② · definition unverified'), st:'retain', star:1,
+      where:T('命题卡 v2：Desktop/RH-命题卡-缺口2-候选P-2026-10-20.md','proposition card v2: Desktop/RH-命题卡-缺口2-候选P-2026-10-20.md'), ev:'ev-000406 / ev-000425',
+      note:T('原判「缺口②不是难，是还没写成命题」——今天真去写，发现更糟：$k_\\lambda$（以及 ξ_λ、η_λ、c_λ）在原文里查不到。三个约定已钉死（prolate 参数 2πλ²、E 的定义域、论域 (0,λ]），另外两条无原文。',
+             'The earlier verdict was "gap ② is not hard, it just has not been written as a proposition" — actually writing it today made things worse: $k_\\lambda$ (and ξ_λ, η_λ, c_λ) cannot be found in the source paper. Three conventions are pinned down (the prolate parameter 2πλ², the domain of E, the ground set (0,λ]); the other two have no source text.')},
+  RevMath:{x:1250,y:1002, t:T('逆向数学定位','Reverse-mathematics\nplacement'), s:T('待查','to check'), st:'untried',
+      note:T('未查。','Not checked.')},
+  AddComb:{x:1250,y:1082, t:T('加性组合：Λ 结构 vs 随机','Additive combinatorics:\nΛ structure vs randomness'), s:T('可能已被封','possibly already closed'), st:'untried',
+      note:T('未查；若已被封，需要找到封它的那篇。','Not checked; if it is already closed, we need to find the paper that closes it.')},
+  CrossDom:{x:1250,y:1162, t:T('档三：跨领域','Tier 3: cross-domain'), s:T('完全没查文献','literature never surveyed'), st:'untried',
+      note:T('完全没查过文献，所以「未尝试」不等于「没价值」。','The literature was never surveyed, so "untried" does not mean "worthless".')},
+  receipt:{x:250,y:802, t:T('验证回执工具链','Verification-receipt\ntoolchain'), s:T('bin/receipt.sh · 冻结 66a1f772 · 14/14','bin/receipt.sh · frozen 66a1f772 · 14/14'), st:'done', star:1,
+      where:T('RHProvability/bin/（18 KB + _audit.py）','RHProvability/bin/ (18 KB + _audit.py)'), ev:'ev-000414 / ev-000422',
+      note:T('一条命令出回执：编译 + #print axioms 公理集 + 洞扫描 + 双检顺序（纳秒判据）。码分离：3=有洞 4=公理越界 5=双检失败 6=工具故障。全项目 EXIT=0（39 文件 / 358 条声明）。它防的是「把自身故障写成对源码的断言」。',
+             'One command produces a receipt: compilation + the axiom set from #print axioms + a hole scan + double-check ordering (nanosecond criterion). Separate exit codes: 3 = holes, 4 = axiom overrun, 5 = double-check failure, 6 = tool malfunction. Whole project EXIT=0 (39 files / 358 declarations). What it guards against is "writing a tool malfunction as an assertion about the source".')},
+  prolate:{x:600,y:802, t:T('prolate 数值台','Prolate numerical bench'), s:T('c ≤ 40 · 三条已知对照通过','c ≤ 40 · three known checks pass'), st:'done',
+      where:T('RHProvability/scripts/prolate.py（1187 行）+ reports/','RHProvability/scripts/prolate.py (1187 lines) + reports/'), ev:'ev-000423 / ev-000424',
+      note:T('两条独立路线（积分算子 Nyström / 通勤算子 L）+ 我第三条路线复核：迹恒等式 Σλ=2c/π 到 1e-14。换算 c_台 = 2πλ²：由本征值个数 2c/π ≈ 4λ²、其偶数支 ≈ 2λ² 与原文 ν(λ²)∼2λ² 自洽反推；但 PS 的 C 约定仍未核，故这是候选换算而非定论。平台区 1−λ_n 不可辨（双精度底），因此不提供指数小量率。',
+             'Two independent routes (integral operator by Nyström / commuting operator L) plus my third-route cross-check: the trace identity Σλ = 2c/π to 1e-14. The conversion c_bench = 2πλ² is back-inferred from the self-consistency of the eigenvalue count 2c/π ≈ 4λ², its even sub-branch ≈ 2λ², and the ν(λ²) ∼ 2λ² in the source paper; but the C convention for PS is still unverified, so this is a candidate conversion, not a settled one. In the plateau region 1−λ_n is unresolvable (double-precision floor), so no exponential smallness rate is provided.')},
+  CiteGap:{x:1150,y:790, t:T('引文断裂：式 7.6 不存在','Citation break:\nEq. 7.6 does not exist'), s:T('正式版 56 页，编号最大到 §6','published 56 pp., numbering stops at §6'), st:'blocked', star:1,
+      where:'Enseign. Math. 69 (2023) 93–148, DOI 10.4171/LEM/1049', ev:'ev-000425 / ev-000427',
+      note:T('【可补性】引文缺口，可能自行消失：若 k_λ 本就是我方记号（对应原文 §3 的 prolate vector），那这条阻塞根本不存在，只剩下「把定义写准」。原来的 note：账上写「k_λ 的构造见 [4] 式 7.6」。实测：期刊号正确（我一度误判为 JIMJ，那是作者模板残留，已自我更正），但正式版全文 Lemma/Theorem/Proposition 7.x 全为 0，最大编号 §6。⟹ 该式号不可追溯；k_λ 疑为我们自己的记号（对应 §3 的 prolate vector）。',
+             '[Patchability] Citation gap, may dissolve on its own: if k_λ is in fact our own notation (corresponding to the prolate vector in §3 of the paper), then this blockage does not exist at all and only "write the definition precisely" remains. Original note: the ledger says "the construction of k_λ is in [4], Eq. 7.6". Measured: the journal reference is correct (I once misjudged it as JIMJ; that was leftover author-template text, since self-corrected), but in the published text Lemma/Theorem/Proposition 7.x all return 0 hits, and the highest numbering is §6. ⟹ That equation number is untraceable; k_λ is probably our own notation (corresponding to the prolate vector in §3).')},
+  LeeYang:{x:890,y:790, t:T('Lee–Yang 零点实现','Lee–Yang zero realisation'), s:T('保留：逻辑上不可排除','retained: not logically excludable'), st:'retain', star:1,
+      note:T('引擎已备，是最自然的接续。它属于 ⑦ 保留，画在这里是因为那条边才是重点。',
+             'The engine is ready; this is the most natural continuation. It belongs to ⑦ (retained) and is drawn here because that edge is the point.')},
+
+  /* ── ② 可证性层 ── */
+  Godel2:{x:180,y:905, t:'AssumedGodel2', s:T('假设','assumed'), st:'assumed',
+      where:'Overview.lean:306',
+      note:T('假设，不是定理。行号见 baseline.env。','An assumption, not a theorem. Line number in baseline.env.')},
+  RHCon:{x:180,y:975, t:'AssumedRHImpliesCon', s:T('假设','assumed'), st:'assumed', where:'Overview.lean:311',
+      note:T('假设。','An assumption.')},
+  Sigma1:{x:180,y:1045, t:T('AssumedΣ₁ 完全性','AssumedΣ₁ completeness'), s:T('假设','assumed'), st:'assumed', where:'Overview.lean:317',
+      note:T('假设。','An assumption.')},
+  Witness:{x:180,y:1115, t:'AssumedWitnessRefutes', s:T('假设','assumed'), st:'assumed', where:'Overview.lean:322',
+      note:T('假设。','An assumption.')},
+  CertLogLog:{x:180,y:1195, t:'TaskCertifiedLogLogBounds', s:T('旧版被机器反证，现为任务','old version machine-refuted'), st:'blocked',
+      where:'Overview.lean:382',
+      note:T('【可补性】待证（算术侧），且必须先避开已被机器反证的旧版。｜原来的 note：⚠ 不要拿旧版当「未完成」去证：Audit.oldEffectiveLogLogBounds_false 已机器反证过它。',
+             '[Patchability] To be proved (arithmetic side), and the old version that was machine-refuted must be avoided first. | Original note: ⚠ Do not take the old version as "unfinished" and try to prove it: Audit.oldEffectiveLogLogBounds_false has already machine-refuted it.')},
+  CertExpLog:{x:180,y:1265, t:'TaskCertifiedExpLogBounds', s:T('仅剩算术侧障碍','only the arithmetic obstacle'), st:'blocked',
+      where:'Overview.lean:397',
+      note:T('【可补性】待证（仅剩算术侧障碍）。｜原来的 note：剩下的算术侧障碍。',
+             '[Patchability] To be proved (only the arithmetic-side obstacle remains). | Original note: the remaining obstacle on the arithmetic side.')},
+  Pi01:{x:480,y:950, h:76, t:'OpenPi01Presentation', s:T('缺口 · 行 368','gap · line 368'), st:'blocked',
+      where:'Overview.lean:368',
+      note:T('【可补性】待证（形式化任务）：缺的是表述与证明，不是已知不可能。｜原来的 note：RH 的 Π⁰₁ 表述。',
+             '[Patchability] To be proved (formalisation task): what is missing is the statement and its proof, not something known to be impossible. | Original note: the Π⁰₁ formulation of RH.')},
+  Pi01Robin:{x:480,y:1120, t:'OpenPi01PresentationOfRobin', s:T('缺口 · 行 372','gap · line 372'), st:'blocked',
+      where:'Overview.lean:372',
+      note:T('【可补性】待证（形式化任务）。｜原来的 note：Robin 的 Π⁰₁ 表述，是更窄的问题。',
+             '[Patchability] To be proved (formalisation task). | Original note: the Π⁰₁ formulation of Robin; a narrower problem.')},
+  Foundation:{x:480,y:1265, t:T('Foundation 兼容','Foundation compatibility'), s:T('需 v4.35 · 2026-10-19 已满足（无出边）','needs v4.35 · met 2026-10-19 (no out-edge)'), st:'done',
+      where:'baseline.env', ev:'ev-000402',
+      note:T('工具链前提，不是 Π⁰₁ 表述的逻辑前提，所以刻意不画 ⟹ 边（见右侧「四处诚实的收口」）。',
+             'A toolchain prerequisite, not a logical premise of the Π⁰₁ statement, so the ⟹ edge is deliberately not drawn (see "Four honest fold-ins" on the right).')},
+
+  /* ── ⑤ C-C-M ── */
+  CCM:{x:1600,y:1100, t:T('C-C-M 变分框架','C-C-M variational framework'), s:T('唯一活路 · 已吸收 Bombieri 逃逸','only live route · Bombieri escape absorbed'), st:'ccm', star:1,
+      note:T('Connes–Consani–Moscovici 算子论路线。它到 RH 之间没有已打通的箭头。',
+             'The Connes–Consani–Moscovici operator-theoretic route. There is no wired arrow from it to RH.')},
+  CCM3:{x:1880,y:905, t:T('缺口③ bξ 零点收敛','Gap ③ bξ zero convergence'), s:T('记号待核 · C-C-M 自称 ⟺ 证 RH ⟹ 循环','notation unverified · claimed ⟺, but circular'), st:'excluded',
+      note:T('它是本图里唯一用红色双箭头连到 RH 的顶点：方向是「证 RH ⟹ 结论」，所以是循环，不能算进展。',
+             'This is the only vertex in the graph joined to RH by a red double arrow: the direction is "prove RH ⟹ conclusion", so it is circular and does not count as progress.')},
+  CCM2:{x:1880,y:1010, t:T('缺口② k_λ 逼近 ξ_λ','Gap ② k_λ approaches ξ_λ'), s:T('不是难，是还没写成命题','not hard — not yet a proposition'), st:'blocked', star:1,
+      note:T('【可补性】待定义：不是难，是还没写成命题。它甚至可以自己变绿——只要我们把 (P) 写死。原来的 note：这就是命题 (P) 的靶子。',
+             '[Patchability] Needs a definition: not hard, merely not yet written as a proposition. It could even turn green on its own — as soon as we pin (P) down. Original note: this is the target of proposition (P).')},
+  CCM1:{x:1880,y:1120, t:T('缺口① 特征值简单 + 特征向量偶','Gap ① simple eigenvalues\n+ even eigenvectors'), s:T('数值一半自动，另一半不可判定','half automatic, half undecidable'), st:'blocked',
+      note:T('【可补性】最接近「半死」的一个：单重性路径 A（解析依赖）与 B（正锥/PF）已被定理级排除，剩下的是数值不可判定的那一半。⟹ 这条的「橙」里，一半是定理级受阻，一半是资源缺口。原来的 note：数值证据：一半自动满足，另一半不可判定。',
+             '[Patchability] The closest thing to "half dead": simplicity routes A (analytic dependence) and B (positive cone / Perron–Frobenius) are excluded at theorem level; what remains is the numerically undecidable half. ⟹ Half of this node being orange is theorem-level obstruction and half is a resource gap. Original note: numerical evidence — half is satisfied automatically, the other half is undecidable.')},
+
+  /* ── ⑥ 已排除 ── */
+  Forcing:{x:200,y:1392, t:T('力迫法','Forcing'), s:T('保 ω，算术句绝对','preserves ω, arithmetic sentences absolute'), st:'excluded',
+      note:T('保 ω 的力迫不改算术句的真值 ⟹ 动不了 RH。',
+             'Forcing that preserves ω does not change the truth value of arithmetic sentences ⟹ it cannot touch RH.')},
+  ProofStr:{x:470,y:1392, t:T('证明论强度','Proof-theoretic strength'), s:T('无已知结果','no known results'), st:'excluded',
+      note:T('没有已知的证明论强度结果可用。','No known proof-theoretic-strength result is applicable.')},
+  Zenodo:{x:740,y:1392, t:'Zenodo 20627372', s:T('自认 conjecture · 受限否定','self-declared conjecture · qualified negative'), st:'excluded',
+      note:T('作者自认是 conjecture，不是证明。这是受限否定：只看到标题/摘要，未读全文。',
+             'The author declares it a conjecture, not a proof. This is a qualified negative: only the title/abstract was seen; the full text was not read.')},
+  OffLine:{x:1010,y:1392, t:T('离线零点成组 × 已证对关联','Off-line zero clustering\n× known pair correlation'), s:T('目标强于 RH','targets something stronger'), st:'excluded',
+      note:T('它要证的东西比 RH 更强，所以不是路径。','What it sets out to prove is stronger than RH, so it is not a route.')},
+  BK:{x:1280,y:1392, t:T('Berry–Keating 不可能性版','Berry–Keating\nimpossibility version'), s:T('已被别人做完','already done by others'), st:'excluded',
+      note:T('这个版本别人已经做完了，重走只是复现。',
+             'This version has already been completed by others; redoing it would only be a reproduction.')},
+  Arakelov:{x:1550,y:1392, t:T('Arakelov 交点正性','Arakelov intersection\npositivity'), s:T('字面版排除，并入 C-C-M','literal version excluded, folded into C-C-M'), st:'excluded',
+      note:T('字面版本已排除，思路并入 C-C-M（这条边收进了节点文字）。',
+             'The literal version is excluded; the idea is folded into C-C-M (that edge is folded into this node text).')}
+};
+
+/* ============================================================================
+   概念说明：这个名词是什么。双击方框弹出；与 note（它为什么卡住）分开写。
+   ========================================================================== */
+const DESC = {
+  RH: T('Riemann 猜想：ζ 的全部非平凡零点都落在 Re s = 1/2 这条线上。等价形式之一：ψ(x) = x + O(x^{1/2}(log x)^2)，即素数计数的主项误差被压到平方根量级。已对前约 10^13 个零点做过数值验证，全部落在线上；没有证明，也没有反例。它是千禧年七问之一。<br><br>在图上的位置：它是最外层目标——判据层七条 ⟺ 挂在它上面。等价是双向的，所以它并不是出度为 0 的 sink（这一点在那条状态说明里讲清）。等价之所以不算路径，是因为它把同一个困难换了一种说法；但翻译本身有用：函数空间逼近、约数和计算、显式公式这些别处的工具，正是通过这种翻译才第一次能碰到 RH。',
+          'The Riemann Hypothesis: every non-trivial zero of ζ lies on the line Re s = 1/2. An equivalent form: ψ(x) = x + O(x^{1/2}(log x)^2), i.e. the error in the prime-counting main term is pushed to square-root size. Verified numerically for roughly the first 10^13 zeros; no proof and no counterexample. One of the seven Millennium Problems.<br><br>Where it sits on this graph: the outermost target — the seven ⟺ edges hang the criterion layer on it. Equivalence runs both ways, so it is not a sink with out-degree zero (the status note spells that out). Equivalence does not count as a route because it restates the same difficulty in different words — yet the translation itself is useful: function-space approximation, divisor-sum computation and explicit formulas are tools from elsewhere that first get to touch RH through it.'),
+  countsEq: T('临界线上的零点个数（lineCount）与开条带 0<Re s<1 内的零点个数（stripCount）相等。条带包含临界线，所以 stripCount ≥ lineCount 恒成立；等号成立的充要条件就是「没有线外零点」，也就是 RH。它把「零点在哪里」换成了「两个计数相等」，因此与 RH 双条件，但难度一点没降——这正说明换语言不等于换难度。',
+          'The number of zeros on the critical line (lineCount) equals the number of zeros in the open strip 0 < Re s < 1 (stripCount). The strip contains the line, so stripCount ≥ lineCount always; equality holds exactly when there is no off-line zero, i.e. exactly RH. It rewrites "where the zeros are" as "two counts agree", hence a biconditional with RH that does not lower the difficulty at all — which is the whole point: changing the language is not changing the problem.'),
+  Robin: T('Robin 判据（1984）：RH 的一条初等算术等价，把「复零点在哪儿」换成「约数和函数涨得多快」。两个词要认清：σ(n) 是 n 的全部正约数之和（不是素因子个数，这两者最容易混），γ 是 Euler 常数 ≈0.5772。它的价值在于可逐个 n 直接验算——于是「RH 成立吗」在数值上变成一个能推进的检验问题，而不是抽象断言。同族的算术化判据还有 Lagarias 的调和数版本。阈值 n≥5041 不能省，理由见下方状态说明。',
+          'Robin\'s criterion (1984): an elementary arithmetic equivalent of RH, trading "where do the complex zeros sit" for "how fast does the divisor-sum function grow". Two words matter: σ(n) is the sum of all positive divisors of n (not a count of prime factors — the two are easily confused), and γ is the Euler constant ≈ 0.5772. Its value is that every n can be checked directly, so "does RH hold" becomes a numerical verification problem that can actually be pushed forward rather than an abstract assertion. A sibling arithmetisation is Lagarias\'s harmonic-number version. The threshold n ≥ 5041 cannot be dropped; the reason is in the status note below.'),
+  Lagarias: T('Lagarias 判据（2002）：RH 成立，当且仅当对一切 n ≥ 1 有 σ(n) ≤ H_n + exp(H_n)·log H_n，其中 H_n = 1 + 1/2 + … + 1/n 是调和数。它与 Robin 判据同族——都是把 RH 化归到一个只用约数和函数就能计算的乘积式不等式，区别在于用调和数代替了 log log n，阈值也从 5041 降到 1。',
+          'Lagarias\'s criterion (2002): RH holds if and only if σ(n) ≤ H_n + exp(H_n)·log H_n for every n ≥ 1, where H_n = 1 + 1/2 + … + 1/n is the harmonic number. It belongs to the same family as Robin\'s — both reduce RH to a product-type inequality computable from the divisor-sum function alone — differing in that harmonic numbers replace log log n, and the threshold drops from 5041 to 1.'),
+  Weil: T('Weil 显式公式：对合适的检验函数 g，零点上的和 Σ_ρ ĝ(ρ) 等于一个 archimedean 项减去素数幂上的和 Σ_{p,k} (log p) p^{-k/2} g(k log p)。它用 Fourier 变换把「零点分布」与「素数的乘法结构」精确对偶起来，是显式公式族的核心。RH 等价于这个公式的某种正性陈述（Weil 正性），所以它也是「把 RH 写成正性」的一条标准入口。',
+          'The Weil explicit formula: for a suitable test function g, the sum over zeros Σ_ρ ĝ(ρ) equals an archimedean term minus a sum over prime powers Σ_{p,k} (log p) p^{-k/2} g(k log p). Via the Fourier transform it makes the distribution of zeros exactly dual to the multiplicative structure of the primes, and it is the core of the explicit-formula family. RH is equivalent to a positivity statement for it (Weil positivity), which makes this a standard doorway to "write RH as positivity".'),
+  NB: T('Nyman–Beurling 判据：RH 成立，当且仅当区间 (0,1) 的特征函数落在由分数部分函数 {θ/x}（θ ∈ (0,1]）张成的 L²(0,1) 子空间的闭包中。这是一条「函数空间逼近」形式的等价，直觉是：能把一个阶梯函数逼近到零距离，就等价于零点全在线上。本图把它排除为路线，理由写在它的状态说明里：它不是唯一的非正性等价，沿它走不会比 RH 本身容易。',
+          'The Nyman–Beurling criterion: RH holds if and only if the indicator function of (0,1) lies in the L²(0,1) closure of the span of the fractional-part functions {θ/x} with θ ∈ (0,1]. This is an equivalence in the form of a function-space approximation; intuitively, being able to approximate a step function to zero distance is equivalent to all zeros lying on the line. The graph excludes it as a route; the reason is in its status note: it is not a unique non-positivity equivalent, so following it is no easier than RH itself.'),
+  BD: T('Báez-Duarte 的 Riesz 型判据：与 Nyman–Beurling 同一个逼近框架，但把「逼近到零距离」换成一族系数的衰减/收敛条件（系数来自 1/ζ 的 Dirichlet 展开截断）。它是等价族里较晚的一支，形式上更接近可计算的级数估计。注意：本图只登记了它属于这一族，没有核对精确陈述——要用它必须先把陈述写准。',
+          'Báez-Duarte\'s Riesz-type criterion: the same approximation framework as Nyman–Beurling, but "distance to zero" is replaced by a decay/convergence condition on a family of coefficients (coming from truncating the Dirichlet expansion of 1/ζ). It is a later member of the equivalence family, formally closer to a computable series estimate. Note: this graph only records that it belongs to that family and has not verified the precise statement — using it requires writing the statement down first.'),
+  Speiser: T('Speiser 定理（1934）：RH 成立，当且仅当 ζ′(s) 在开条带 0 < Re s < 1/2 内没有零点。这是「导数版本」的等价：ζ 的零点全贴着临界线，等价于 ζ 的导数在那个左半条带里干净。它把问题从「ζ 的零点在哪」换成「ζ′ 的零点在哪」，形式上多了一阶，但给出了不同的工具入口。',
+          'Speiser\'s theorem (1934): RH holds if and only if ζ′(s) has no zeros in the open strip 0 < Re s < 1/2. This is the "derivative version" of the equivalence: all zeros of ζ hugging the critical line is equivalent to the derivative being clean in that left half-strip. It moves the question from "where are the zeros of ζ" to "where are the zeros of ζ′", gaining a derivative but opening a different set of tools.'),
+  Growth: T('「ζ 在条带内的竖直增长估计」，典型形状是 |ζ(σ+it)| ≤ C(σ)·|t|^A（0<σ<1 固定）。它是零点计数的输入：先用 Jensen 公式把「零点在圆内的个数」与「边界上 log|ζ| 的平均」挂钩，再用 Borel–Carathéodory 把实部估计升级成模估计、用 Phragmén–Lindelöf 把边界界搬到带内，就得到 N(T) 的上界。数学上这一层早就够了（凸界给 A=1/4，Vinogradov–Korobov 更好）；缺的只是 Mathlib 里的形式化。',
+          'Vertical growth bounds for ζ inside the strip, typically of the shape |ζ(σ+it)| ≤ C(σ)·|t|^A for fixed 0 < σ < 1. This is the input to zero counting: Jensen\'s formula ties the number of zeros in a disc to the boundary average of log|ζ|, Borel–Carathéodory upgrades a bound on the real part to one on the modulus, Phragmén–Lindelöf carries the boundary bound into the strip, and an upper bound for N(T) falls out. Mathematically this layer has long been sufficient (the convexity bound gives A = 1/4, Vinogradov–Korobov does better); only the Mathlib formalisation is missing.'),
+  Jensen: T('Jensen 公式：若 f 在 |z| ≤ R 内解析、零点为 a_k，则 log|f(0)| + Σ_k log(R/|a_k|) = (1/2π)∫_0^{2π} log|f(Re^{iθ})| dθ。它把「零点在圆盘内的位置分布」与「边界圆周上 log|f| 的平均值」压成等式——几乎所有零点计数估计的第一步都是它。',
+          'Jensen\'s formula: if f is analytic on |z| ≤ R with zeros a_k, then log|f(0)| + Σ_k log(R/|a_k|) = (1/2π)∫_0^{2π} log|f(Re^{iθ})| dθ. It collapses "where the zeros sit inside the disc" and "the circular average of log|f| on the boundary" into one identity — the first step of essentially every zero-counting estimate.'),
+  BC: T('Borel–Carathéodory 不等式：若 f 在 |z| ≤ R 内解析且 Re f ≤ M，则对 r < R 有 |f(z)| ≤ 2Mr/(R−r) + (R+r)/(R−r)·|f(0)|。作用是把「实部有界」升级成「模有界」——因为 log ζ 的实部好估计（它就是 log|ζ| 在特定方向上的信息），而我们需要的是 |log ζ| 本身。',
+          'The Borel–Carathéodory inequality: if f is analytic on |z| ≤ R and Re f ≤ M, then for r < R, |f(z)| ≤ 2Mr/(R−r) + (R+r)/(R−r)·|f(0)|. Its job is to upgrade a bound on the real part to a bound on the modulus — the real part of log ζ is what is easy to estimate, while what is needed downstream is |log ζ| itself.'),
+  PL: T('Phragmén–Lindelöf 原理：在竖直条带内解析、且增长被某个指数型函数控制的函数，其条带内部的值也被同样控制（最大模原理的条带版本，允许边界上增长）。用途是把只在边界（比如 σ=0 与 σ=1 两条边）上成立的 |ζ| 界，搬到带内任意固定的 σ 上。',
+          'The Phragmén–Lindelöf principle: a function analytic in a vertical strip whose growth is dominated by some exponential-type function is controlled inside the strip too (the maximum-modulus principle for strips, allowing boundary growth). Its use here is to carry bounds on |ζ| known only on the boundary lines (say σ = 0 and σ = 1) to any fixed σ inside the strip.'),
+  ArgPr: T('辐角原理（argument principle）：对围道内解析、除极点外无零点的 f，零点数减极点数等于 (1/2πi)∮_C f′(s)/f(s) ds。它把「有几个零点」变成「算一次围道积分」，是零点计数从定性走向定量的开关。本项目自己实现了这套骨架（Mathlib 上游没有现成组合），它在图上支撑 Backlund 那条链。',
+          'The argument principle: for f analytic inside a contour with no zeros other than poles, the number of zeros minus the number of poles equals (1/2πi)∮_C f′(s)/f(s) ds. It turns "how many zeros" into "evaluate one contour integral", the switch that makes zero counting quantitative. The project implemented this skeleton itself (no ready-made combination upstream in Mathlib), and it supports the Backlund chain on this graph.'),
+  ZetaZeros: T('Mathlib 里把 ζ 的零点打包成一个集合，并证明它 closed、discrete、locally finite（闭、离散、局部有限）。这三条的作用是：紧集与闭离散集的交是有限集，于是「某个有界区域里只有有限多个零点」变成一句纯拓扑的话——这正是 N(T) 这类计数能被定义的先决条件。注意它不是 v4.35 的新东西，v4.33 就有，项目早就在用。',
+          'Mathlib\'s packaging of the zeros of ζ as a set proved closed, discrete and locally finite. The point of those three properties: the intersection of a compact set with a closed discrete set is finite, so "only finitely many zeros in any bounded region" becomes a purely topological statement — exactly the precondition for a counting function like N(T) to be definable. Note this is not new in v4.35; it exists in v4.33 and the project has been using it for a while.'),
+  HardyZ: T('Hardy Z 函数（Riemann–Siegel Z 函数）：Z(t) = e^{iθ(t)}·ζ(1/2 + it)，其中 θ 是 Riemann–Siegel theta 函数，选它正是为了让 Z(t) 取实值。于是「ζ 在临界线上有没有零点」变成「一个实值函数有没有零点」——后者可以用介值定理处理。上游 PR #42963 把它带进了 Mathlib，本项目只写了三行接线。',
+          'The Hardy Z-function (Riemann–Siegel Z-function): Z(t) = e^{iθ(t)}·ζ(1/2 + it), with θ the Riemann–Siegel theta function, chosen precisely so that Z(t) is real-valued. Then "does ζ have a zero on the critical line" becomes "does a real-valued function vanish" — the latter reachable by the intermediate value theorem. Upstream PR #42963 brought it into Mathlib; this project only wrote three lines of wiring.'),
+  Engine: T('变号引擎：若 Z(a) 与 Z(b) 异号，则开区间 (a,b) 内必有 t 使 Z(t)=0，也就是 ζ(1/2+it)=0——临界线上确实有零点。这是纯组合加介值定理，不依赖任何新的分析件，Mathlib 上游没有现成的这种封装。必须说清它的能力边界：它只给「线上至少有这么多个零点」的下界，永远推不出 RH（RH 说的是「线外一个都没有」）。',
+          'The sign-change engine: if Z(a) and Z(b) have opposite signs, then some t in (a,b) has Z(t) = 0, i.e. ζ(1/2+it) = 0 — there really is a zero on the critical line. This is pure combinatorics plus the intermediate value theorem, needing no new analysis, and nothing upstream packages it. Its capability boundary must be stated plainly: it only yields a lower bound ("at least this many zeros on the line") and can never give RH, which says "none off the line".'),
+  Backlund: T('Backlund / von Mangoldt 的零点计数上界：N(T) = O(T log T)，即虚部不超过 T 的非平凡零点个数至多按 T log T 增长。这是无条件定理（1905/1918），配合同样已知的下界，N(T) 的阶就定在 T log T。它的关键局限：数的是虚部的多重集，完全不管实部——所以它既不蕴含 RH，也不被 RH 蕴含。图上它到 RH 之间刻意没有边。',
+          'The Backlund / von Mangoldt zero-counting upper bound: N(T) = O(T log T), i.e. the number of non-trivial zeros with imaginary part at most T grows no faster than T log T. This is an unconditional theorem (1905/1918); together with the matching lower bound it pins the order of N(T) at T log T. Its decisive limitation: it counts the multiset of imaginary parts and says nothing about real parts — so it neither implies RH nor is implied by it. That is why there is deliberately no edge from it to RH on this graph.'),
+  LineFunc: T('本项目原先登记为「缺口 1」的对象：一个到临界线（作为闭集）的距离函数。问题在于这个函数恒 ≥ 0、永不变号，所以它根本不能用来做变号论证——而那条登记声称的用途正是 sign-change。因此它不是「还没证的缺口」，而是「登记写得太松」，已经在图上改标为「已更正」。它是这张图里唯一一个把「登记错误」本身画成顶点的例子。',
+          'What the project had registered as "gap 1": a distance function to the critical line (regarded as a closed set). The problem is that this function is always ≥ 0 and never changes sign, so it simply cannot drive a sign-change argument — yet sign-change was exactly the use the registry entry claimed. So it is not "a gap not yet proved" but "a registry entry written too loosely", and it has been relabelled "corrected" on this graph. It is the one vertex here that draws a registry error itself.'),
+  Probe: T('robin-probe：一个独立的代码库，把 Robin 判据的数值验证做成可编译、可复跑的模块化检查（36 个模块）。它的价值是把「有人算过」变成「任何人可以重算」。本机实测 25 个模块能编译、11 个被缺依赖卡住，卡住的里面包含 Equivalence.Theorem。',
+          'robin-probe: a separate codebase that turns numerical verification of the Robin criterion into compilable, re-runnable modular checks (36 modules). Its value is turning "somebody computed it once" into "anyone can recompute it". Measured locally: 25 modules build, 11 are stuck on missing dependencies, and the blocked set includes Equivalence.Theorem.'),
+  EquivThm: T('robin-probe 里负责「把有限范围的数值验证接到形式化等价命题上」的那个定理。这是整条 Robin 链的接头处：没有它，前面算过的数就只能算「有限情形的观测」，不能升级成「对无限个 n 的判据」。它现在没打通，所以图上 Robin 判据仍然标「未接」。',
+          'The theorem inside robin-probe that joins finite-range numerical verification to the formal equivalence statement. This is the joint of the whole Robin chain: without it, the numbers already computed remain "observations in finitely many cases" and cannot be upgraded to "a criterion for infinitely many n". It is not wired through, which is why the Robin criterion is still marked unwired on this graph.'),
+  Certs: T('证书批：把 Robin 判据在大范围内逐个 n 的验证结果，做成可被机器复核的「证书」（每个 n 一条记录，配编译产物 .olean）。它属于数值证据，不是证明——它能排除反例到某个界，永远不能证明「没有反例」。本机现状：00–05 与 Row00 有编译产物，06–13 / Row01–35 / AllRows 还没编。',
+          'Certificate batches: the results of checking Robin\'s inequality at every n over a large range, packaged as machine-checkable certificates (one record per n, plus compiled .olean artefacts). This is numerical evidence, not proof — it can rule out counterexamples up to a bound and can never prove there are none. Current state locally: 00–05 and Row00 have build artefacts; 06–13 / Row01–35 / AllRows are not compiled yet.'),
+  CA: T('Colossally abundant numbers（超abundant数）：Ramanujan 提出、Erdős 与 Alaoglu 研究的数族，特征是 σ(n)/n 在这些 n 上达到局部极大。它们在 Robin 型问题里是「最坏情形」——把 σ(n)/(n log log n) 顶到最大的 n 都出现在这族里。因此只需在这族上检验，就把「对一切 n 检查」压缩成「对稀疏子族检查」，这是有限验证能覆盖无限情形的原因。',
+          'Colossally abundant numbers: the family introduced by Ramanujan and studied by Erdős and Alaoglu, characterised by σ(n)/n attaining local maxima there. They are the worst cases in Robin-type problems — the n that push σ(n)/(n log log n) highest all lie in this family. Checking only this family compresses "check every n" into "check a sparse subfamily", which is why finite verification can cover an infinite statement.'),
+  P: T('命题 (P)：缺口② 应该写成的那条命题，内容是「k_λ 逼近 ξ_λ 且误差可控」——也就是 C-C-M 路线里「用 prolate 侧的对象去显式逼近目标对象」这一层。它的意义是把整条路线从「框架」变成「可判真假的一句话」。目前的状态比预想更糟：连 k_λ、ξ_λ、η_λ、c_λ 的可追溯定义都没有，所以还不知道 (P) 到底该怎么说。',
+          'Proposition (P): the statement that gap ② ought to become — "k_λ approximates ξ_λ with controlled error", the layer of the C-C-M route where an object on the prolate side explicitly approaches the target object. Its purpose is to turn the whole route from a "framework" into one sentence that can be true or false. The current state is worse than expected: even k_λ, ξ_λ, η_λ and c_λ lack traceable definitions, so it is not yet known how (P) should even be stated.'),
+  RevMath: T('逆向数学（reverse mathematics）：不问「怎么证 RH」，而问「证 RH 需要多强的公理系统」——例如 RH 是否等价于某个二阶算术子系统上的命题。它的产出不是 RH 的证明，而是 RH 在证明论层级中的坐标。这类工作能让「RH 不可证」一类的断言变得可以说清楚，所以放在可证性层。',
+          'Reverse mathematics: not "how do we prove RH" but "how strong an axiom system does a proof of RH need" — e.g. whether RH is equivalent to a statement over some subsystem of second-order arithmetic. Its output is not a proof of RH but a coordinate for RH in the proof-theoretic hierarchy. Work of this kind is what makes claims like "RH is unprovable" stateable at all, which is why it sits in the provability layer.'),
+  AddComb: T('加性组合：研究集合的加法结构（和集 A+A、差集 A−A、密度增量）。在这里的问题是：ζ 的零点或素数的加法结构，是否已经被现有的加性组合定理「封死」——如果某类结构必然产生某个密度，那么依赖这类结构的路线可能早就不通。本图把它标成「未尝试」，因为文献完全没查；「可能已被封」是猜测，不是结论。',
+          'Additive combinatorics: the study of additive structure in sets (sumsets A+A, difference sets A−A, density increment). The question here is whether the additive structure of the zeros or the primes is already closed off by existing additive-combinatorics theorems — if a class of structure forces a certain density, routes relying on it may be dead already. Marked untried because the literature was never surveyed; "possibly already closed" is a guess, not a conclusion.'),
+  CrossDom: T('档三：跨领域。指把 RH 与当前清单之外的领域连接起来的尝试——谱几何、随机矩阵、量子混沌、其他算子代数环境等等。本图标成「未尝试」的准确含义是：这部分文献我们一页都没查过，所以它既不是死路，也不是活路，只是未知。这个区分很重要：「没查」不等于「没价值」。',
+          'Tier three: cross-domain. Attempts to connect RH to areas outside the current list — spectral geometry, random matrices, quantum chaos, other operator-algebra settings, and so on. "Untried" here means precisely: not a single page of that literature has been surveyed, so it is neither a dead end nor a live route, just unknown. The distinction matters: "not surveyed" is not "worthless".'),
+  receipt: T('验证回执工具链：一条命令产出一份结构化记录，说明「这次证明是怎么被检查的」——编译是否通过、依赖了哪些公理（#print axioms 输出）、有没有 sorry 洞、两份独立判读文件的先后顺序对不对。退出码分离：3=有洞、4=公理越界、5=双检失败、6=工具故障。它防的是最坏的一种错：把自己的工具故障写成对源码的断言。',
+          'The verification-receipt toolchain: one command produces a structured record of how a proof was checked — does it compile, which axioms does it depend on (the #print axioms output), are there sorry holes, and is the ordering of the two independent reading files correct. Exit codes are separated: 3 = holes, 4 = axiom overrun, 5 = double-check failure, 6 = tool malfunction. What it guards against is the worst kind of error: writing your own tool malfunction as an assertion about the source.'),
+  prolate: T('prolate spheroidal functions（长球波函数，PSWF）：在 [−1,1] 上同时对角化「截断到 [−1,1]」与「带限到 [−c,c]」这两个算子的函数族。特征值 λ_n 是能量集中比——λ_n 越接近 1，这个函数在区间内的能量占它总能量的比例越高。它们天生带「支撑有限 + Fourier 支撑有限」的双重约束，正是 C-C-M 路线里 prolate vector 那一族。数值台量的是 λ_n、区间内与全轴上的正交性、以及迹恒等式 Σλ_n = 2c/π。',
+          'Prolate spheroidal functions (PSWF): the family that simultaneously diagonalises the two operators "truncate to [−1,1]" and "band-limit to [−c,c]". The eigenvalue λ_n is the energy concentration ratio — the closer λ_n is to 1, the larger the share of the function\'s energy lying inside the interval. They carry finite support and finite Fourier support at once, which is exactly the family behind the prolate vector of the C-C-M route. The bench measures λ_n, orthogonality both on the interval and on the whole axis, and the trace identity Σλ_n = 2c/π.'),
+  CiteGap: T('引文断裂：账本里写「k_λ 的构造见 [4] 式 7.6」，但被引论文（Enseign. Math. 69 (2023) 93–148）正式版全文的编号最大只到 §6，Lemma / Theorem / Proposition 7.x 命中为 0。也就是说这个引文指不到任何东西。两种可能：式号写错了，或者 k_λ 本来就是我们自己的记号（原文 §3 里与之对应的东西叫 prolate vector）。在弄清是哪种之前，命题 (P) 连陈述都无法写准。',
+          'Citation break: the ledger says "the construction of k_λ is in [4], Eq. 7.6", but the published version of the cited paper (Enseign. Math. 69 (2023) 93–148) is numbered only up to §6, with zero hits for Lemma / Theorem / Proposition 7.x. So the citation reaches nothing. Two possibilities: the equation number is wrong, or k_λ is our own notation (the corresponding object in §3 of the paper is called a prolate vector). Until that is settled, proposition (P) cannot even be stated precisely.'),
+  LeeYang: T('Lee–Yang 零点定理：对铁磁 Ising 模型，配分函数作为磁场的函数，其零点全部落在一条线上（单位圆，或等价地纯虚轴）。它是「零点全落在一条线上」这个现象的**已证**范例，且证明是刚性的、可推广的。它给的是机制类比——「为什么会有一条线」的直觉——不是 RH 的证明。本图把它标「保留」，因为逻辑上不可排除：引擎已经备好，是最自然的接续方向。',
+          'The Lee–Yang zero theorem: for a ferromagnetic Ising model, the zeros of the partition function as a function of the magnetic field all lie on a line (the unit circle, equivalently the imaginary axis). It is a proven instance of "all zeros on one line", with a rigid and generalisable proof. What it supplies is a mechanism analogy — intuition for why a line should appear — not a proof of RH. Marked "retained" because it cannot be logically excluded: the engine is ready and it is the most natural continuation.'),
+  Godel2: T('Gödel 第二不完全性定理：任何足够强（能表达基本算术）、且一致的理论 T，都不能在 T 内部证明自身的一致性 Con(T)。在这张图上它是被登记的**假设**，不是定理被引用：项目用它来支撑「RH 的可证性地位」一类论证——这类论证必须先说明在哪套理论里谈一致性，否则就是空话。',
+          'Gödel\'s second incompleteness theorem: no sufficiently strong (able to express basic arithmetic) and consistent theory T can prove its own consistency Con(T) internally. On this graph it is a registered assumption, not a cited theorem: the project uses it to support arguments about "the provability status of RH", and such arguments must first say inside which theory consistency is being discussed, or they are empty.'),
+  RHCon: T('假设「RH ⟹ Con(T)」：如果 RH 在 T 里可证，则 T 一致。这一步的作用是把一个**数学**命题（RH）接到一个**元数学**命题（一致性）上，从而让「RH 不可证」这种话有内容。在图上它是假设：没有任何证明支撑它，把它当真会让可证性层的结论全部悬空。',
+          'The assumption "RH ⟹ Con(T)": if RH is provable in T then T is consistent. Its role is to connect a mathematical statement (RH) to a metamathematical one (consistency), which is what gives sentences like "RH is unprovable" any content. On this graph it is an assumption: nothing proves it, and taking it for granted leaves every conclusion in the provability layer hanging.'),
+  Sigma1: T('Σ₁ 完全性：一个 Σ₁ 语句（形如「存在 k 使得某个可判定性质 P(k) 成立」）只要在标准模型中为真，就一定在足够强的理论里可证——因为那个见证 k 是可以写下来的具体数字，验证 P(k) 是有限计算。它的作用是把「事实上存在一个反例」升级成「可以形式化证明存在一个反例」。',
+          'Σ₁-completeness: a Σ₁ sentence (of the form "there exists k such that the decidable property P(k) holds") that is true in the standard model is provable in any sufficiently strong theory — because the witness k is a concrete number that can be written down, and verifying P(k) is a finite computation. Its role is upgrading "in fact a counterexample exists" to "the existence of a counterexample can be formally proved".'),
+  Witness: T('假设「存在见证即可反驳」：如果能给出一个具体的反例见证（对 RH 来说就是给出一个 Re s ≠ 1/2 的零点及其验证数据），那么相应命题被反驳。这条配合 Σ₁ 完全性构成可证性层的另一半：真 → 可证（Σ₁ 完全性），假 → 有见证（本假设）。两条合起来才让「RH 的证明论地位」这套讨论闭合。',
+          'The assumption that a witness refutes: if a concrete counterexample witness can be exhibited (for RH, an off-line zero together with data verifying it), then the corresponding statement is refuted. Together with Σ₁-completeness this supplies the other half of the provability layer: true → provable (Σ₁-completeness), false → a witness exists (this assumption). Only the two together make the discussion of "RH\'s proof-theoretic status" close up.'),
+  CertLogLog: T('TaskCertifiedLogLogBounds：一条待证的算术侧任务，内容是把 log log 型界——Robin 判据不等式里的核心估计——证成机器可核的形式。这里有一个必须记住的陷阱：这个任务的**旧版**已经被机器反证（Audit.oldEffectiveLogLogBounds_false），所以绝不能拿旧版的陈述当「还没完成的部分」去补，那会是在证明一个假命题。',
+          'TaskCertifiedLogLogBounds: an arithmetic-side task still to be proved — putting log log-type bounds, the core estimate inside Robin\'s inequality, into machine-checkable form. One trap must be remembered: an earlier version of this task has already been machine-refuted (Audit.oldEffectiveLogLogBounds_false), so the old statement must never be taken as "the unfinished part" and completed — that would be proving a false proposition.'),
+  CertExpLog: T('TaskCertifiedExpLogBounds：与上一条同族，针对 exp/log 型界的形式化任务。按当前登记，它只剩下算术侧的障碍——也就是说分析侧的组件都齐了，缺的是把这些估计在 Lean 里写出来并证掉。',
+          'TaskCertifiedExpLogBounds: the same family as the previous task, for exp/log-type bounds. Per the current registry only the arithmetic-side obstacle remains — that is, the analytic components are all in place, and what is missing is writing these estimates down in Lean and proving them.'),
+  Pi01: T('Π⁰₁ 表述：把一个命题写成「对所有 n，某个可判定性质 P(n) 成立」的形式（Π⁰₁ = 任意多个全称量词套一个可判定矩阵）。RH 有这样的表述，其意义是：「RH 为假」变成一个 Σ₁ 语句，也就是「存在一个有限的算术见证」——于是反例不是形而上学的，而是一个可以写下来的具体对象。',
+          'Π⁰₁ formulation: writing a statement as "for all n, the decidable property P(n) holds" (Π⁰₁ = universal quantifiers over a decidable matrix). RH has such a form, and the point is that "RH is false" then becomes a Σ₁ sentence, i.e. "a finite arithmetic witness exists" — so a counterexample is not a metaphysical thing but a concrete object that can be written down.'),
+  Pi01Robin: T('Robin 判据的 Π⁰₁ 表述：因为 Robin 不等式对每个具体 n 都可以直接计算，把「对一切 n ≥ 5041 成立」写成 Π⁰₁ 形式比 RH 本身更窄、更具体——它把一个关于复零点的问题换成了关于整数约数和的问题，量词结构相同但矩阵部分完全算术化。',
+          'The Π⁰₁ formulation of the Robin criterion: because Robin\'s inequality is directly computable at each concrete n, writing "holds for all n ≥ 5041" in Π⁰₁ form is narrower and more concrete than RH itself — it replaces a question about complex zeros with one about divisor sums of integers, with the same quantifier structure but a fully arithmetised matrix.'),
+  Foundation: T('Foundation 兼容：指本项目的工具链前提——Lean v4.35.0 与对应 Mathlib 版本上项目能编译（3957 jobs / EXIT=0）。这是「环境就绪」，不是任何数学命题的逻辑前提。图上它刻意没有出边，因为把「环境就绪」画成 ⟹「推理用到它」会把两种完全不同的依赖混成一种。',
+          'Foundation compatibility: the project\'s toolchain prerequisite — that the project builds on Lean v4.35.0 with the matching Mathlib (3957 jobs / EXIT=0). This is "the environment is ready", not a logical premise of any mathematical statement. It deliberately has no outgoing edge, because drawing "the environment is ready" as ⟹ "the reasoning uses it" would merge two entirely different kinds of dependence into one.'),
+  CCM: T('Connes–Consani–Moscovici 的算子论框架：把 RH 重述成某个算子的谱性质——自伴性、正性、或者一条迹公式的收敛性——在非交换几何的语言里做。它的吸引力在于：如果 RH 是某个自伴算子的谱实性，那它就变成一条「结构性」而非「估计性」的命题。它是本图上唯一还活着的路线；但注意，从它到 RH 之间没有任何已打通的箭头。',
+          'The Connes–Consani–Moscovici operator-theoretic framework: restating RH as a spectral property of some operator — self-adjointness, positivity, or the convergence of a trace formula — in the language of noncommutative geometry. Its appeal: if RH is the spectral realness of a self-adjoint operator, it becomes a "structural" statement rather than an "estimative" one. It is the only live route on this graph; note, however, that no arrow from it to RH has been wired.'),
+  CCM3: T('缺口③：bξ 零点收敛。要求某一族对象 bξ 的零点收敛到 ξ 的零点（ξ 是完成后的 ζ，满足函数方程的那个）。这是 C-C-M 自称与 RH 等价的那一条，但要看清方向：他们能用的是「假设 RH ⟹ bξ 的零点收敛」，反过来那一步没有独立证明。所以图上把它画成红色双箭头的**循环**——形式上是双条件，实质上是「证 RH ⟹ 结论」，不能算进展。另外 bξ 这个记号在原文里查不到，只在本文档笔记里出现。',
+          'Gap ③: bξ zero convergence. It asks that the zeros of a family of objects bξ converge to the zeros of ξ (the completed ζ, the one satisfying the functional equation). C-C-M present this as equivalent to RH, but the direction matters: what they can use is "assume RH ⟹ the zeros of bξ converge"; the converse has no independent proof. So the graph draws it as a red double arrow that is in fact **circular** — formally a biconditional, in substance "prove RH ⟹ conclusion", which is not progress. The notation bξ itself cannot be found in the source paper; it appears only in this project\'s notes.'),
+  CCM2: T('缺口②：k_λ 逼近 ξ_λ。要求 prolate 侧的对象 k_λ 逼近目标对象 ξ_λ，并且误差可控。它是整条 C-C-M 路线里最具体的一步——前一步给框架，这一步要给出「怎么逼近、误差多大」。正因为具体，它也是唯一可能被写成一个可判真假的命题的地方，所以命题 (P) 的靶子就是它。目前连 k_λ 的定义都不可追溯。',
+          'Gap ②: k_λ approximates ξ_λ. It asks that the prolate-side object k_λ approach the target ξ_λ with controlled error. This is the most concrete step of the whole C-C-M route — the previous step supplies the framework, this one must supply "how it approaches, and with how much error". Precisely because it is concrete, it is also the only place that could become a statement with a truth value, which is why proposition (P) targets it. At present even the definition of k_λ is untraceable.'),
+  CCM1: T('缺口①：特征值单重 + 特征向量偶。要求某个算子的特征值都是单重的（无重根）、并且特征向量都是偶函数。这两条是 C-C-M 论证里的技术前提——没有单重性，谱分解不好控制；没有偶性，与函数方程的对称性对不上。数值上这一半自动满足，但另一半（在连续极限下是否保持）不可判定，所以它是一个混合体。',
+          'Gap ①: simple eigenvalues plus even eigenvectors. It asks that the eigenvalues of some operator all be simple (no repeated roots) and its eigenvectors all be even functions. These are technical prerequisites in the C-C-M argument: without simplicity the spectral decomposition is hard to control, and without evenness it does not match the symmetry of the functional equation. Numerically one half holds automatically, but the other half (whether it survives the continuum limit) is undecidable, so this is a mixed case.'),
+  Forcing: T('力迫法（forcing）：通过给集合论宇宙添加一个新的泛型集来扩张模型，用来证明独立性——CH 就是这样被证明独立于 ZFC 的。关键限制：保 ω 的力迫不改变算术语句的真值，所以它对 RH 这类纯算术命题**完全无效**。它能证明的是「RH 独立于 T」，永远不能证明 RH。这是本图上最干净的一条死路。',
+          'Forcing: enlarging a model of set theory by adjoining a new generic set, used to prove independence — that is how CH was shown independent of ZFC. The decisive limitation: ω-preserving forcing does not change the truth value of arithmetic sentences, so it is **completely inert** on a purely arithmetic statement like RH. What it can prove is "RH is independent of T"; it can never prove RH. This is the cleanest dead end on the graph.'),
+  ProofStr: T('证明论强度（proof-theoretic strength）：比较不同理论「能证多少」的量。经典例子：PA 的强度低于 ACA₀，后者又低于 Z₂。问题是：目前没有任何已知的强度结果强到足以对 RH 下判断——既没有「RH ⟹ 某强系统的某个强命题」这类上界结果，也没有「某弱系统不足以证 RH」这类下界结果。所以这条路线是空的，不是错的。',
+          'Proof-theoretic strength: a measure of how much different theories can prove. Classical example: PA is weaker than ACA₀, which is weaker than Z₂. The problem: no known strength result is strong enough to settle RH — there is neither an upper-bound result of the form "RH ⟹ some strong statement of a strong system" nor a lower-bound result of the form "some weak system cannot prove RH". So this route is empty rather than wrong.'),
+  Zenodo: T('Zenodo 条目 20627372：一份放在 Zenodo 上的预印本。作者自己在文中把它标为 conjecture 而不是 proof，所以它不构成「RH 已被证明」的主张。图上的判定属于**受限否定**：我们只看了标题与摘要，没有读全文——所以准确的表述是「据其自述，它不自称证明」，而不是「它什么也没证明」。',
+          'Zenodo entry 20627372: a preprint hosted on Zenodo. The author labels it a conjecture rather than a proof, so it does not amount to a claim that RH has been proved. The judgement on this graph is a **qualified negative**: only the title and abstract were read, not the full text — so the accurate phrasing is "by its own description it does not claim to be a proof", not "it proves nothing".'),
+  OffLine: T('离线零点成组：考察「线外零点是否成簇出现」这类假说，若成簇成立则可以推出某些统计结论。问题在于方向：它要证的东西强于 RH（成簇是一个更强的结构断言），所以它不是通往 RH 的一条路，而是 RH 的一个更强推论方向。这是本条被排除的唯一理由——不是它错，是它不是路径。',
+          'Off-line zero clustering: hypotheses about whether the off-line zeros appear in clusters, from which certain statistical conclusions would follow. The problem is direction: what it sets out to prove is stronger than RH (clustering is a stronger structural assertion), so it is not a path towards RH but a stronger consequence in the other direction. That is the sole reason for exclusion here — not that it is wrong, but that it is not a route.'),
+  BK: T('Berry–Keating 猜想：把 ζ 的零点看成某个量子混沌系统的能谱——原始的启发是 Hamiltonian H = xp，因为它在经典层面给出与素数计数相符的能级密度。它是一个「为什么零点像谱」的解释框架。图上的这一条是它的不可能性版本，而那个版本已经被别人做完（Endres–Steiner 的 no-go 等），重走只能复现，不能推进。',
+          'The Berry–Keating conjecture: reading the zeros of ζ as the spectrum of a quantum-chaotic system — the original inspiration being the Hamiltonian H = xp, which semi-classically yields a level density matching the prime count. It is a framework explaining why the zeros look like a spectrum. The vertex on this graph is its impossibility version, and that version has already been completed by others (Endres–Steiner no-go results and related work); redoing it reproduces but does not advance.'),
+  Arakelov: T('Arakelov 交点理论：在算术曲面（带 Arakelov 度量的曲线）上定义除子的交点数，要求某个交点数非负，从而把 RH 重述成一条正性命题。字面版本（直接要求交点正性）已被排除为路线；但它的思路——「把 RH 变成几何上的正性」——被 C-C-M 吸收了，所以在图上它是「已排除 + 并入 C-C-M」的双重身份。',
+          'Arakelov intersection theory: define intersection numbers of divisors on an arithmetic surface (a curve with an Arakelov metric), require some intersection number to be non-negative, and thereby restate RH as a positivity statement. The literal version (demanding intersection positivity outright) has been excluded as a route; but its idea — "turn RH into geometric positivity" — was absorbed into C-C-M, so on this graph it has a double identity: excluded, and folded in.'),
+};
+
+/* 备注块：不是顶点，没有边 */
+const NOTES = [
+  {x:1690,y:1368,w:420,h:T(104,120),
+   title:T('注记：十三条路线撞的是同一堵墙',
+          'Note: thirteen routes hit the same wall'),
+   d:T('这张图的中心判断。ζ 的**乘法侧**指直接编码素数乘法结构的那部分工具：Euler 积 ∏_p (1−p^{−s})^{−1}、函数方程、Dirichlet 级数——它们都在「把 ζ 写成乘积或级数」这一层工作。**加法侧**指零点之间、素数之间的加法关系：和集、差集、对关联。图上被审视的路线，除对关联以外全部只动乘法侧；而对关联是统计型的，它丢掉了点的质量（强度），只留下两点相关函数。所以这些路线撞的是同一堵墙：乘法侧的工具看不见加法信息。',
+      'The central judgement of this graph. The **multiplicative side** of ζ means the tools that directly encode the multiplicative structure of the primes: the Euler product ∏_p (1−p^{−s})^{−1}, the functional equation, Dirichlet series — all working at the level of writing ζ as a product or a series. The **additive side** means additive relations among zeros or among primes: sumsets, difference sets, pair correlation. Every route examined on this graph except pair correlation touches only the multiplicative side; and pair correlation is statistical — it discards point mass (intensity) and keeps only the two-point function. So these routes hit the same wall: multiplicative tools cannot see additive information.'),
+   lines:T([
+    '十三条路线撞的是同一堵墙',
+    '全部只动 ζ 的乘法侧（Euler 积、函数方程、',
+    'Dirichlet 级数）。加法侧只以「统计」形',
+    '式接过一次（对关联），而统计丢点质量。',
+    '九条被排除不是因为各自笨，是同一瓶颈。'
+  ],[
+    'Thirteen routes hit the same wall',
+    'All of them touch only the multiplicative side of ζ',
+    '(Euler product, functional equation, Dirichlet series).',
+    'The additive side was touched once, only statistically',
+    '(pair correlation), and statistics discards point mass.',
+    'Nine were excluded, not by being dumb, but by one bottleneck.'
+  ])},
+  {x:1450,y:772,w:380,h:62, kind:'gap',
+   title:T('注记：刻意不画的边',
+          'Note: an edge deliberately not drawn'),
+   d:T('⌀ 这个标记的用途：图上「没有边」是看不见的东西，读者无法区分「忘了画」和「刻意不画」。这里刻意不画 BacklundBound → RH。理由：N(T)=O(T log T) 数的是虚部的多重集，完全不控制实部，所以它既不蕴含 RH，也不被 RH 蕴含（RH 为真时 N(T) 的阶仍然是 T log T）。把这条箭头画上，就是把必要条件伪装成充分条件——这正是这类图上最容易犯的错。',
+      'What the ⌀ marker is for: "there is no edge" is invisible on a graph, so a reader cannot tell "forgot to draw it" from "deliberately not drawn". Here BacklundBound → RH is deliberately absent. Reason: N(T) = O(T log T) counts the multiset of imaginary parts and exercises no control over real parts, so it neither implies RH nor is implied by it (with RH true, the order of N(T) is still T log T). Drawing that arrow would disguise a necessary condition as a sufficient one — the easiest mistake to make on a graph like this.'),
+   lines:T([
+    '⌀ 这里刻意没有边：BacklundBound ⇏ RH',
+    'N(T) = O(T log T) 不蕴含 RH，画上箭头就是撒谎。'
+  ],[
+    '⌀ Deliberately no edge here: BacklundBound ⇏ RH',
+    'N(T) = O(T log T) does not imply RH; drawing an arrow would be a lie.'
+  ])}
+];
+
+/* ============================================================================
+   边：[from, to, 类型, 标签]
+   类型 imp ⟹ 因果 | iff ⟺ 双条件 | blk ⊣ 阻塞 | plan ⇢ 未接 | bad ⟲ 循环
+   ========================================================================== */
+const EDGES = [
+  /* ① 判据层：与 RH 全部是双条件 */
+  ['countsEq','RH','iff',T('已证（A）','proved (A)')],
+  ['Robin','RH','iff',''],
+  ['Lagarias','RH','iff',''],
+  ['Weil','RH','iff',''],
+  ['NB','RH','iff',T('路线已排除','route excluded')],
+  ['BD','RH','iff',''],
+  ['Speiser','RH','iff',''],
+
+  /* ③ 分析层：零件 → Backlund */
+  ['Growth','Backlund','imp',T('唯一缺件','the only missing piece')],
+  ['Jensen','Backlund','imp',T('零点计数','zero counting')],
+  ['BC','Backlund','imp',T('增长控制','growth control')],
+  ['PL','Backlund','imp',T('条带估计','strip estimate')],
+  ['ArgPr','Backlund','imp',T('辐角骨架','argument skeleton')],
+  ['ZetaZeros','Backlund','imp',T('有限性','finiteness')],
+  ['HardyZ','Engine','imp',T('介值定理','IVT')],
+  ['Engine','Backlund','imp',T('下界方向','lower-bound direction')],
+  ['Engine','LeeYang','plan',T('下一步','next step')],
+
+  /* ② 可证性层 */
+  ['Godel2','Pi01','imp',T('装置','machinery')],
+  ['RHCon','Pi01','imp',''],
+  ['Sigma1','Pi01','imp',''],
+  ['Witness','Pi01','imp',''],
+  ['Pi01Robin','Pi01','imp',T('更窄','narrower')],
+  ['CertLogLog','Pi01Robin','imp',T('需算术侧','needs arithmetic side')],
+  ['CertExpLog','Pi01Robin','imp',T('仅剩障碍','last obstacle')],
+
+  /* ④ 证书层 */
+  ['EquivThm','Probe','blk',T('受阻于','stalled by')],
+
+  /* ⑤ C-C-M */
+  ['CCM','CCM3','imp',T('缺口③','gap ③')],
+  ['CCM','CCM2','imp',T('缺口②','gap ②')],
+  ['CCM','CCM1','imp',T('缺口①','gap ①')],
+  ['P','CCM2','plan',T('写成命题','as a proposition')],
+  ['CCM3','RH','bad',T('循环 ✗','circular ✗')],
+
+  /* 今天新增：引文断裂阻塞命题 (P) 的陈述 */
+  ['CiteGap','P','blk',T('定义无原文','no source definition')]
+];
+
+const ZONES = [
+  {x:70,  y:734,  w:760, h:114, label:T('⑧ 今日新增：证据工具（是支撑，不是逻辑前提）','⑧ New today: evidence tools (support, not logical premises)')},
+  {x:70,  y:90,   w:950, h:630, label:T('③ 分析层 — 唯一能产出定量的地方','③ Analytic layer — the only place that yields quantitative output')},
+  {x:1080,y:90,   w:480, h:630, label:T('① 判据层 — 与 RH 等价（换语言，不换难度）','① Criterion layer — equivalent to RH (new language, same difficulty)')},
+  {x:70,  y:850,  w:610, h:450, label:T('② 可证性层 — 证明论地位（不证 RH）','② Provability layer — proof-theoretic status (does not prove RH)')},
+  {x:700, y:850,  w:340, h:450, label:T('④ 数值证书层','④ Numerical certificate layer')},
+  {x:1080,y:850,  w:340, h:450, label:T('⑦ 未尝试 / 待做','⑦ Untried / to do')},
+  {x:1460,y:850,  w:620, h:450, label:T('⑤ C-C-M 算子论 — 唯一活路','⑤ C-C-M operator theory — the only live route')},
+  {x:70,  y:1330, w:2060,h:170, label:T('⑥ 已排除 — 有硬理由，别重走','⑥ Excluded — hard reasons; do not redo')}
+];
+
+/* ============================================================================
+   渲染（可重跑）
+   ========================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+const gZones = document.getElementById('zones');
+const gEdges = document.getElementById('edges');
+const gNotes = document.getElementById('notes');
+const gNodes = document.getElementById('nodes');
+const gView  = document.getElementById('viewport');
+
+/* 记下显式尺寸，重排时不丢 */
+for(const id in NODES){
+  const n = NODES[id];
+  if(n.w) n.wFixed = n.w;
+  if(n.h) n.hFixed = n.h;
+}
+
+function el(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  if(attrs) for(const k in attrs) e.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function clearGroup(g){ while(g.firstChild) g.removeChild(g.firstChild); }
+
+/* 宽度估计：CJK ≈ 1em，ASCII ≈ 0.56em */
+function tw(str, size){
+  let w = 0;
+  for(const ch of str){
+    const c = ch.codePointAt(0);
+    if(c > 0x2E80) w += size;
+    else if('iIl.,:;!\'|'.includes(ch)) w += size * 0.30;
+    else if(ch === ' ') w += size * 0.30;
+    else w += size * 0.56;
+  }
+  return w;
+}
+function truncTo(str, cap, size){
+  if(tw(str, size) <= cap) return str;
+  let s = str;
+  while(s.length && tw(s + '…', size) > cap) s = s.slice(0, -1);
+  return s + '…';
+}
+function linesOf(t){ return String(t).split('\n'); }
+
+/* 尺寸 → 依语言重算 */
+function layoutSizes(){
+  const F = FSZ[LANG];
+  for(const id in NODES){
+    const n = NODES[id];
+    const ls = linesOf(tr(n.t));
+    n.lines = ls;
+    const wl = Math.max(...ls.map(l => tw(l, F.lbl)));
+    const cap = n.wFixed ? n.wFixed - 30 : SUBMAX;
+    const sub = n.s ? truncTo(tr(n.s), cap, F.sub) : '';
+    n.sTrunc = sub;
+    const ws = sub ? tw(sub, F.sub) : 0;
+    n.w = n.wFixed || Math.max(78, Math.ceil(Math.max(wl, ws) + 34));
+    n.h = n.hFixed || ((sub ? 58 : 40) + (ls.length === 2 ? 12 : 0));
+  }
+}
+
+/* 端点：从中心沿方向落到矩形边界 */
+function border(n, tx, ty, pad){
+  pad = pad === undefined ? 3 : pad;
+  const dx = tx - n.x, dy = ty - n.y;
+  if(dx === 0 && dy === 0) return {x:n.x, y:n.y};
+  const hw = n.w / 2 + pad, hh = n.h / 2 + pad;
+  const sx = dx === 0 ? Infinity : hw / Math.abs(dx);
+  const sy = dy === 0 ? Infinity : hh / Math.abs(dy);
+  const s = Math.min(sx, sy);
+  return {x: n.x + dx * s, y: n.y + dy * s};
+}
+
+/* 入边锚点：同一目标的多条左边入边，沿左边缘均摊，避免箭头糊成一坨 */
+function computeAnchors(){
+  const AN = {}, groups = {};
+  EDGES.forEach((e, i) => {
+    const a = NODES[e[0]], b = NODES[e[1]];
+    if(a.x < b.x) (groups[e[1]] = groups[e[1]] || []).push(i);
+  });
+  for(const tid in groups){
+    const B = NODES[tid];
+    const list = groups[tid].sort((i, j) => NODES[EDGES[i][0]].y - NODES[EDGES[j][0]].y);
+    const n = list.length;
+    const span = Math.min(B.h - 24, n * 14);
+    list.forEach((idx, k) => {
+      const off = n === 1 ? 0 : -span / 2 + span * k / (n - 1);
+      AN[idx] = {x: B.x - B.w / 2 - 3, y: B.y + off};
+    });
+  }
+  return AN;
+}
+
+const STYLE = {
+  imp : {cls:'e-imp',  mk:'a-imp',  dbl:false},
+  iff : {cls:'e-iff',  mk:'a-iff',  dbl:true },
+  blk : {cls:'e-blk',  mk:'a-blk',  dbl:false},
+  plan: {cls:'e-plan', mk:'a-plan', dbl:false},
+  bad : {cls:'e-bad',  mk:'a-bad',  dbl:true }
+};
+const TYPE_LABEL = {
+  imp : T('⟹ 因果',   '⟹ implies'),
+  iff : T('⟺ 双条件', '⟺ iff'),
+  blk : T('⊣ 阻塞',   '⊣ blocks'),
+  plan: T('⇢ 未接',   '⇢ unwired'),
+  bad : T('⟲ 循环',   '⟲ circular')
+};
+const ST_TEXT = {
+  target:T('目标','target'), done:T('已完成 / 在用','done / in use'), upstream:T('上游已有、未接','upstream, not wired'),
+  blocked:T('阻塞 / 缺件','blocked / missing piece'), untried:T('未尝试','untried'), assumed:T('假设','assumed'),
+  ccm:T('C-C-M 支','C-C-M branch'), excluded:T('已排除','excluded'), retain:T('保留','retained'),
+  corrected:T('已更正','corrected')
+};
+
+let edgeInfo = [];
+
+function renderAll(){
+  const F = FSZ[LANG];
+  layoutSizes();
+  const ANCHOR = computeAnchors();
+
+  /* 分区 */
+  clearGroup(gZones);
+  ZONES.forEach(z => {
+    el('rect', {x:z.x, y:z.y, width:z.w, height:z.h, rx:14, class:'zone'}, gZones);
+    el('text', {x:z.x + 14, y:z.y + 21, class:'zone-label'}, gZones).textContent = tr(z.label);
+  });
+
+  /* 备注块 */
+  clearGroup(gNotes);
+  NOTES.forEach((nb, ni) => {
+    const ng = el('g', {class:'notebox', 'data-note':ni}, gNotes);
+    el('rect', {x:nb.x, y:nb.y, width:nb.w, height:nv(nb.h), rx:8,
+      fill:'#241f0d', 'fill-opacity':'.93', stroke:'#a68b2a', 'stroke-width':'1.2',
+      'stroke-dasharray': nb.kind === 'gap' ? '5 4' : 'none'}, ng);
+    tr(nb.lines).forEach((ln, i) => {
+      const t = el('text', {x:nb.x + 14, y:nb.y + 22 + i * 16,
+        fill: i === 0 ? '#ffe08a' : '#c8b26a',
+        'font-size': i === 0 ? '12.5' : '10.5',
+        'font-weight': i === 0 ? '650' : '400'}, ng);
+      t.textContent = ln;
+    });
+  });
+
+  /* 边 */
+  clearGroup(gEdges);
+  edgeInfo = [];
+  EDGES.forEach((e, idx) => {
+    const [a, b, type, rawLabel] = e;
+    const A = NODES[a], B = NODES[b];
+    const st = STYLE[type];
+    const label = rawLabel ? tr(rawLabel) : '';
+
+    const dx = B.x - A.x, dy = B.y - A.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const bend = type === 'bad' ? 0.10 : 0;
+    const nx = -dy / len, ny = dx / len;
+    const ctrl = {x:(A.x + B.x)/2 + nx * len * bend, y:(A.y + B.y)/2 + ny * len * bend};
+
+    const p1 = border(A, ctrl.x, ctrl.y, 3);
+    const p2 = ANCHOR[idx] || border(B, ctrl.x, ctrl.y, 3);
+    const d = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Q ${ctrl.x.toFixed(1)} ${ctrl.y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+
+    const g = el('g', {class:'edge-g', 'data-idx':idx, 'data-type':type}, gEdges);
+    el('title', {}, g).textContent =
+      `${tr(TYPE_LABEL[type])}｜${tr(A.t).replace(/\n/g,' ')} → ${tr(B.t).replace(/\n/g,' ')}${label ? '｜' + label : ''}`;
+
+    el('path', {d, class:'edge ' + st.cls,
+      'marker-end':`url(#${st.mk})`,
+      ...(st.dbl ? {'marker-start':`url(#${st.mk})`} : {})}, g);
+    el('path', {d, class:'ehit'}, g);
+
+    if(label){
+      const t = type === 'iff' ? 0.5 : 0.38;
+      const mx = (1-t)*(1-t)*p1.x + 2*(1-t)*t*ctrl.x + t*t*p2.x;
+      const my = (1-t)*(1-t)*p1.y + 2*(1-t)*t*ctrl.y + t*t*p2.y;
+      const w = tw(label, 10) + 13, h = 17;
+      const lg = el('g', {class:'elabel'}, g);
+      el('rect', {x:mx - w/2, y:my - h/2, width:w, height:h, rx:4}, lg);
+      el('text', {x:mx, y:my + .5, 'text-anchor':'middle'}, lg).textContent = label;
+    }
+    edgeInfo.push({a, b, type, label, from:tr(A.t), to:tr(B.t)});
+  });
+
+  /* 顶点 */
+  clearGroup(gNodes);
+  for(const id in NODES){
+    const n = NODES[id];
+    const g = el('g', {class:`node st-${n.st}`, 'data-id':id, transform:`translate(${n.x},${n.y})`}, gNodes);
+    el('title', {}, g).textContent = tr(n.t).replace(/\n/g,' ') + (n.s ? ' — ' + tr(n.s) : '');
+    el('rect', {x:-n.w/2, y:-n.h/2, width:n.w, height:n.h, rx: n.st === 'target' ? 16 : 9, class:'box'}, g);
+
+    const two = n.lines.length >= 2;
+    const ly = two ? -14 : (n.sTrunc ? -6 : 0);
+    n.lines.forEach((ln, i) => {
+      el('text', {x:0, y:ly + i * 17, class:'lbl', 'text-anchor':'middle', 'font-size':F.lbl}, g).textContent = ln;
+    });
+    if(n.sTrunc){
+      el('text', {x:0, y: two ? 20 : 13, class:'sub', 'text-anchor':'middle', 'font-size':F.sub}, g).textContent = n.sTrunc;
+    }
+    if(n.star) el('text', {x:n.w/2 - 12, y:-n.h/2 + 12, class:'star', 'text-anchor':'middle'}, g).textContent = '★';
+    n.el = g;
+  }
+
+  renderEdgeTable();
+  applyEdgeFilter();
+}
+
+/* 边表 */
+function renderEdgeTable(){
+  const glyph = {imp:'⟹', iff:'⟺', blk:'⊣', plan:'⇢', bad:'⟲'};
+  const rows = edgeInfo.map((e, i) => `
+    <tr><td class="mono">${i + 1}</td>
+        <td style="color:#4fd1b8;font-weight:700">${glyph[e.type]}</td>
+        <td>${e.from.replace(/\n/g,' ')} → ${e.to.replace(/\n/g,' ')}</td>
+        <td style="color:#9fb0bd">${e.label || '—'}</td></tr>`).join('');
+  document.getElementById('edgetable').innerHTML =
+    `<summary id="edgecount"></summary>
+     <table><thead><tr><th>#</th><th>${tr(I18N['tbl.th'])}</th><th>${tr(I18N['tbl.edge'])}</th><th>${tr(I18N['tbl.claim'])}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  const c = {imp:0, iff:0, blk:0, plan:0, bad:0};
+  edgeInfo.forEach(e => c[e.type]++);
+  const ec = document.getElementById('edgecount');
+  ec.textContent = LANG === 'zh'
+    ? `展开 ${edgeInfo.length} 条边（⟹${c.imp} ⟺${c.iff} ⊣${c.blk} ⇢${c.plan} ⟲${c.bad}）`
+    : `Expand ${edgeInfo.length} edges (⟹${c.imp} ⟺${c.iff} ⊣${c.blk} ⇢${c.plan} ⟲${c.bad})`;
+}
+
+/* ============================================================================
+   交互
+   ========================================================================== */
+let scale = 1, tx = 0, ty = 0;
+
+function apply(){
+  gView.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+  gView.classList.toggle('small', scale < 0.55);
+}
+const TOP_INSET = 84;                    /* 给标题让出的上边距 */
+function fit(){
+  const r = svg.getBoundingClientRect();
+  const b = gView.getBBox();
+  const pad = 26;
+  const availH = Math.max(120, r.height - TOP_INSET);
+  const s = Math.min(r.width / (b.width + pad * 2), availH / (b.height + pad * 2));
+  scale = s;
+  tx = (r.width - b.width * s) / 2 - b.x * s;
+  ty = TOP_INSET + (availH - b.height * s) / 2 - b.y * s;
+  apply();
+}
+
+const stage = document.getElementById('stage');
+let dragging = false, lastX = 0, lastY = 0, moved = 0;
+stage.addEventListener('pointerdown', ev => {
+  if(ev.target.closest('.node')) return;
+  dragging = true; moved = 0; lastX = ev.clientX; lastY = ev.clientY;
+  stage.classList.add('dragging'); stage.setPointerCapture(ev.pointerId);
+});
+stage.addEventListener('pointermove', ev => {
+  if(!dragging) return;
+  const dx = ev.clientX - lastX, dy = ev.clientY - lastY;
+  moved += Math.abs(dx) + Math.abs(dy);
+  lastX = ev.clientX; lastY = ev.clientY;
+  tx += dx; ty += dy; apply();
+});
+stage.addEventListener('pointerup', () => {
+  dragging = false; stage.classList.remove('dragging');
+  if(moved < 4 && !selected) clearSelection();
+});
+svg.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const r = svg.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const ns = Math.min(3.2, Math.max(0.18, scale * Math.exp(-ev.deltaY * 0.0016)));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns; apply();
+}, {passive:false});
+
+document.getElementById('btn-fit').onclick = fit;
+document.getElementById('btn-reset').onclick = fit;
+addEventListener('keydown', ev => {
+  if(ev.key === 'f' || ev.key === 'F') fit();
+  if(ev.key === 'Escape'){ if(popTarget){ closePop(); return; } clearSelection(); }
+});
+
+/* 选中 / 悬停 */
+let selected = null;
+function neighborsOf(id){
+  const s = new Set([id]);
+  EDGES.forEach(([a, b]) => { if(a === id) s.add(b); if(b === id) s.add(a); });
+  return s;
+}
+function paint(id){
+  if(!id){
+    document.querySelectorAll('.node').forEach(n => n.classList.remove('dimmed'));
+    document.querySelectorAll('.edge-g').forEach(g => g.classList.remove('dimmed', 'hot'));
+    document.querySelectorAll('.elabel').forEach(l => l.classList.remove('dimmed'));
+    return;
+  }
+  const keep = neighborsOf(id);
+  document.querySelectorAll('.node').forEach(n => n.classList.toggle('dimmed', !keep.has(n.dataset.id)));
+  document.querySelectorAll('.edge-g').forEach(g => {
+    const e = EDGES[+g.dataset.idx];
+    const on = (e[0] === id || e[1] === id);
+    g.classList.toggle('dimmed', !on);
+    g.classList.toggle('hot', on);
+    const lab = g.querySelector('.elabel');
+    if(lab) lab.classList.toggle('dimmed', !on);
+  });
+}
+
+function renderDetail(id){
+  const box = document.getElementById('detail');
+  if(!id){
+    box.innerHTML = `<h2>${tr(I18N['det.title'])}</h2><div class="hint">${tr(I18N['det.hint'])}</div>`;
+    return;
+  }
+  const n = NODES[id];
+  /* 按箭头计：⟺ / ⟲ 是双向边，两端各有一个箭头，所以两侧都记一次 */
+  let hin = 0, hout = 0, both = 0;
+  EDGES.forEach(([a, b, type]) => {
+    const dbl = (type === 'iff' || type === 'bad');
+    if(a === id || b === id){ if(dbl) both++; }
+    if(b === id){ hin++; if(dbl) hout++; }
+    if(a === id){ hout++; if(dbl) hin++; }
+  });
+  box.innerHTML = `
+    <h2>${tr(I18N['det.title'])}</h2>
+    <div class="nm">${tr(n.t).replace(/\n/g, ' ')}</div>
+    <div class="st">${tr(ST_TEXT[n.st] || {zh:n.st, en:n.st})} · ${tr(I18N['det.in'])} ${hin} · ${tr(I18N['det.out'])} ${hout}${both ? ' · ' + tr(I18N['det.both']) + ' ' + both : ''}</div>
+    <dl>
+      ${n.s ? `<dt>${tr(I18N['det.sub'])}</dt><dd>${tr(n.s)}</dd>` : ''}
+      ${n.where ? `<dt>${tr(I18N['det.where'])}</dt><dd>${tr(n.where)}</dd>` : ''}
+      ${n.ev ? `<dt>${tr(I18N['det.ev'])}</dt><dd>${n.ev}</dd>` : ''}
+      <dt>id</dt><dd style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#7d93a5">${id}</dd>
+    </dl>
+    ${n.note ? `<div class="note">${tr(n.note)}</div>` : ''}`;
+}
+function select(id){
+  selected = id;
+  document.querySelectorAll('.node').forEach(n => n.classList.toggle('sel', n.dataset.id === id));
+  paint(id);
+  renderDetail(id);
+}
+function clearSelection(){
+  selected = null;
+  document.querySelectorAll('.node').forEach(n => { n.classList.remove('dimmed', 'sel'); });
+  paint(null);
+  renderDetail(null);
+}
+
+/* ── 双击弹层：概念说明 ─────────────────────────────────────────────────── */
+let popTarget = null;          /* {type:'node', id} | {type:'note', i} */
+
+function renderPop(){
+  const sheet = document.getElementById('popsheet');
+  if(!popTarget){ sheet.innerHTML = ''; return; }
+  let title = '', desc = '', meta = '', note = '';
+  if(popTarget.type === 'node'){
+    const n = NODES[popTarget.id];
+    title = tr(n.t).replace(/\n/g, ' ');
+    desc  = tr(DESC[popTarget.id]);
+    const bits = [tr(ST_TEXT[n.st] || {zh:n.st, en:n.st})];
+    if(n.where) bits.push(tr(n.where));
+    if(n.ev) bits.push(n.ev);
+    meta = bits.join(' · ');
+    note = n.note ? tr(n.note) : '';
+  }else{
+    const nb = NOTES[popTarget.i];
+    title = tr(nb.title);
+    desc  = tr(nb.d);
+  }
+  sheet.innerHTML =
+    `<div class="hd"><div class="nm">${title}</div><button class="x" id="popx" aria-label="close">×</button></div>` +
+    (meta ? `<div class="meta">${meta}</div>` : '') +
+    `<div class="desc">${desc}</div>` +
+    (note ? `<div class="sec"><h3>${tr(I18N['pop.evidence'])}</h3><div>${note}</div></div>` : '') +
+    `<div class="foot">${tr(I18N['pop.hint'])}</div>`;
+  document.getElementById('popx').onclick = closePop;
+}
+function openPop(tg){
+  popTarget = tg;
+  renderPop();
+  document.getElementById('pop').classList.add('on');
+}
+function closePop(){
+  popTarget = null;
+  document.getElementById('pop').classList.remove('on');
+}
+document.getElementById('pop').addEventListener('click', ev => {
+  if(ev.target.id === 'pop') closePop();
+});
+
+/* 事件挂在外层 g 上，重画子元素不影响委托 */
+/* 单击 = 选中并出右侧面板；双击 = 弹概念说明。用 200ms 定时器把两者分开，
+   避免双击时先选中再反选的闪烁。 */
+let pendingClick = null;
+gNodes.addEventListener('click', ev => {
+  const g = ev.target.closest('.node');
+  if(!g) return;
+  const id = g.dataset.id;
+  if(pendingClick && pendingClick.id === id){   /* 同一顶点的第二次点击 → 交给 dblclick */
+    clearTimeout(pendingClick.t); pendingClick = null; return;
+  }
+  if(pendingClick){ clearTimeout(pendingClick.t); pendingClick = null; }
+  pendingClick = {id, t: setTimeout(() => {
+    pendingClick = null;
+    if(selected === id) clearSelection(); else select(id);
+  }, 200)};
+});
+gNodes.addEventListener('dblclick', ev => {
+  const g = ev.target.closest('.node');
+  if(!g) return;
+  if(pendingClick){ clearTimeout(pendingClick.t); pendingClick = null; }
+  const id = g.dataset.id;
+  if(selected !== id) select(id);
+  openPop({type:'node', id});
+});
+gNotes.addEventListener('dblclick', ev => {
+  const g = ev.target.closest('[data-note]');
+  if(!g) return;
+  openPop({type:'note', i: +g.dataset.note});
+});
+gNodes.addEventListener('pointerover', ev => {
+  const g = ev.target.closest('.node');
+  if(!g || selected) return;
+  paint(g.dataset.id);
+});
+gNodes.addEventListener('pointerout', () => { if(!selected) paint(null); });
+
+/* 工具栏：按类型收边 */
+function applyEdgeFilter(){
+  document.querySelectorAll('.toolbar input[type=checkbox]').forEach(cb => {
+    const t = cb.dataset.t;
+    document.querySelectorAll(`.edge-g[data-type="${t}"]`).forEach(g => {
+      g.style.display = cb.checked ? '' : 'none';
+    });
+    cb.closest('.chk').dataset.off = cb.checked ? '0' : '1';
+  });
+}
+document.querySelectorAll('.toolbar input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', applyEdgeFilter);
+});
+
+/* ============================================================================
+   语言层
+   ========================================================================== */
+function applyStatic(){
+  document.querySelectorAll('[data-i18n]').forEach(e => {
+    const v = I18N[e.dataset.i18n];
+    if(v) e.textContent = tr(v);
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(e => {
+    const v = I18N[e.dataset.i18nHtml];
+    if(v) e.innerHTML = tr(v);
+  });
+}
+function setLang(l){
+  if(l !== 'zh' && l !== 'en') return;
+  LANG = l;
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+  document.body.classList.toggle('lang-en', l === 'en');
+  document.title = tr(I18N['doc.title']);
+  try{
+    const u = new URL(location.href);
+    if(l === 'en') u.searchParams.set('lang','en'); else u.searchParams.delete('lang');
+    history.replaceState(null, '', u.href);
+  }catch(e){ /* file:// 下可能被拒，忽略 */ }
+
+  applyStatic();
+  renderAll();
+  document.querySelectorAll('#langswitch button').forEach(b =>
+    b.classList.toggle('on', b.dataset.lang === l));
+
+  if(selected){
+    document.querySelectorAll('.node').forEach(n => n.classList.toggle('sel', n.dataset.id === selected));
+    paint(selected);
+    renderDetail(selected);
+  } else {
+    renderDetail(null);
+  }
+  if(popTarget) renderPop();
+  fit();
+}
+document.querySelectorAll('#langswitch button').forEach(b => {
+  b.addEventListener('click', () => setLang(b.dataset.lang));
+});
+
+/* 启动：?lang=en 可直达英文版（便于把英文版单独发出去） */
+(function(){
+  const q = new URLSearchParams(location.search).get('lang');
+  setLang(q === 'zh' ? 'zh' : 'en');
+})();
+</script>
+</body>
+</html>

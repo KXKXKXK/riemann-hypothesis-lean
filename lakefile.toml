@@ -1,0 +1,17 @@
+name = "RHProvability"
+version = "0.1.0"
+keywords = ["math", "logic"]
+defaultTargets = ["RHProvability"]
+
+[leanOptions]
+pp.unicode.fun = true
+relaxedAutoImplicit = false
+autoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.35.0"
+
+[[lean_lib]]
+name = "RHProvability"
